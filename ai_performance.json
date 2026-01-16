@@ -1,0 +1,224 @@
+{
+  "meta": {
+    "version": "10.0",
+    "created": 1768348800000,
+    "autosaveMs": 5000,
+    "totalTrades": 247,
+    "totalWins": 142,
+    "totalLosses": 105,
+    "bestStreak": 8,
+    "currentStreak": 3,
+    "lastUpdate": 1768348800000
+  },
+  "session": {
+    "trades": 12,
+    "wins": 8,
+    "losses": 4,
+    "profit": 45.67,
+    "startTime": 1736476800000
+  },
+  "symbols": {
+    "R_100": {
+      "trades": 89,
+      "wins": 54,
+      "losses": 35,
+      "profit": 234.56,
+      "winRate": 0.6067415730337079,
+      "avgStake": 2.45,
+      "avgPayout": 4.67,
+      "bestWin": 12.34,
+      "worstLoss": -5.67,
+      "lastTrade": 1736476800000,
+      "streak": 2,
+      "confidence": 0.72
+    },
+    "R_50": {
+      "trades": 67,
+      "wins": 38,
+      "losses": 29,
+      "profit": 156.78,
+      "winRate": 0.5671641791044776,
+      "avgStake": 1.89,
+      "avgPayout": 3.45,
+      "bestWin": 9.87,
+      "worstLoss": -4.23,
+      "lastTrade": 1736476800000,
+      "streak": 1,
+      "confidence": 0.65
+    },
+    "BOOM1000": {
+      "trades": 91,
+      "wins": 50,
+      "losses": 41,
+      "profit": 189.34,
+      "winRate": 0.5494505494505495,
+      "avgStake": 3.12,
+      "avgPayout": 5.89,
+      "bestWin": 15.67,
+      "worstLoss": -6.78,
+      "lastTrade": 1736476800000,
+      "streak": 0,
+      "confidence": 0.58
+    }
+  },
+  "hourly": {
+    "9": {
+      "trades": 45,
+      "wins": 28,
+      "losses": 17,
+      "profit": 123.45
+    },
+    "10": {
+      "trades": 52,
+      "wins": 32,
+      "losses": 20,
+      "profit": 145.67
+    },
+    "14": {
+      "trades": 38,
+      "wins": 22,
+      "losses": 16,
+      "profit": 98.23
+    },
+    "15": {
+      "trades": 41,
+      "wins": 25,
+      "losses": 16,
+      "profit": 112.89
+    }
+  },
+  "daily": {
+    "Mon Jan 06 2025": {
+      "trades": 23,
+      "wins": 14,
+      "losses": 9,
+      "profit": 67.89
+    },
+    "Tue Jan 07 2025": {
+      "trades": 28,
+      "wins": 18,
+      "losses": 10,
+      "profit": 89.34
+    }
+  },
+  "patterns": {
+    "R_100_CALL_win-win-loss": {
+      "count": 12,
+      "wins": 8,
+      "losses": 4,
+      "profit": 45.67
+    },
+    "BOOM1000_PUT_win-loss-win": {
+      "count": 9,
+      "wins": 6,
+      "losses": 3,
+      "profit": 34.56
+    }
+  },
+  "strategies": {
+    "MOMENTUM": {
+      "trades": 156,
+      "wins": 89,
+      "losses": 67,
+      "profit": 345.67
+    },
+    "BREAKOUT": {
+      "trades": 91,
+      "wins": 53,
+      "losses": 38,
+      "profit": 234.89
+    }
+  },
+  "learning": {
+    "marketRankings": {
+      "R_100": {
+        "winRate": 0.6067415730337079,
+        "profit": 234.56,
+        "trades": 89,
+        "score": 0.6247415730337079
+      },
+      "BOOM1000": {
+        "winRate": 0.5494505494505495,
+        "profit": 189.34,
+        "trades": 91,
+        "score": 0.5694505494505495
+      },
+      "R_50": {
+        "winRate": 0.5671641791044776,
+        "profit": 156.78,
+        "trades": 67,
+        "score": 0.5871641791044776
+      }
+    },
+    "timePreferences": {
+      "10": 0.6153846153846154,
+      "15": 0.6097560975609756,
+      "9": 0.6222222222222222,
+      "14": 0.5789473684210527
+    },
+    "adaptiveParams": {
+      "R_100": {
+        "suggestedStake": 2.45,
+        "confidence": 0.6067415730337079,
+        "recommended": true
+      },
+      "BOOM1000": {
+        "suggestedStake": 3.12,
+        "confidence": 0.5494505494505495,
+        "recommended": false
+      }
+    },
+    "mistakes": [
+      {
+        "symbol": "CRASH500",
+        "direction": "PUT",
+        "stake": 2.5,
+        "strategy": "MOMENTUM",
+        "confidence": 0.25,
+        "time": 1736476800000,
+        "reason": "Low Confidence, Poor Symbol Performance"
+      },
+      {
+        "symbol": "R_25",
+        "direction": "CALL",
+        "stake": 1.8,
+        "strategy": "BREAKOUT",
+        "confidence": 0.35,
+        "time": 1736476800000,
+        "reason": "Low Confidence"
+      }
+    ]
+  },
+  "history": [
+    {
+      "symbol": "R_100",
+      "result": "win",
+      "stake": 2.5,
+      "payout": 4.75,
+      "direction": "CALL",
+      "strategy": "MOMENTUM",
+      "confidence": 0.72,
+      "time": 1736476800000
+    },
+    {
+      "symbol": "BOOM1000",
+      "result": "win",
+      "stake": 3.0,
+      "payout": 5.5,
+      "direction": "PUT",
+      "strategy": "BREAKOUT",
+      "confidence": 0.58,
+      "time": 1736476800000
+    },
+    {
+      "symbol": "R_50",
+      "result": "loss",
+      "stake": 1.8,
+      "payout": 0,
+      "direction": "CALL",
+      "strategy": "MOMENTUM",
+      "confidence": 0.45,
+      "time": 1736476800000
+    }
+  ]
+} 
