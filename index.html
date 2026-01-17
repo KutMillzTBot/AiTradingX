@@ -1999,19 +1999,6 @@ button {
     <!-- Column 2 -->
     <div class="lg:col-span-2">
 
-      <!-- Clustering Detected Alert -->
-      <div id="cluster-alert" class="card hidden border-yellow-500/40">
-        <div class="flex items-start gap-3">
-          <div class="text-yellow-400 text-xl">⚠️</div>
-          <div>
-            <div class="text-lg font-semibold text-yellow-300">Clustering Detected</div>
-            <div id="cluster-text" class="text-sm text-slate-200 mt-1">
-              3+ clusters in last 5 ticks suggests possible reversal/indecision.
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- KutMilzAi Pro Engine Alert -->
       <div id="kutMilzAi-alert" class="card hidden border-blue-500/40">
         <div class="flex items-start gap-3">
@@ -2810,6 +2797,17 @@ button {
             Tick Ladder is OFF.
           </div>
 
+          <!-- Clustering Detected Alert (moved here) -->
+          <div id="cluster-alert" class="card hidden border-yellow-500/40" style="margin-bottom:8px;">
+            <div class="flex items-start gap-3">
+              <div class="text-yellow-400 text-xl">⚠️</div>
+              <div>
+                <div class="text-lg font-semibold text-yellow-300">Clustering Detected</div>
+                <div id="cluster-text" class="text-sm text-slate-200 mt-1">3+ clusters in last 5 ticks suggests possible reversal/indecision.</div>
+              </div>
+            </div>
+          </div>
+
           <!-- KutMilzAi Pro Engine -->
           <div class="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg mt-3">
             <div class="flex flex-col sm:flex-row sm:items-center">
@@ -2840,6 +2838,16 @@ button {
               <input id="kutMilzAi-lookback" type="number" min="10" max="200" step="1" value="33"
                 class="w-full mt-1 p-2 bg-slate-800 border border-slate-600 rounded text-slate-100" disabled />
             </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
+            <div>
+              <label class="text-xs text-slate-400">Max Digits Stored</label>
+              <input id="kutMilzAi-max-digits" type="number" min="20" max="5000" step="10" value="500"
+                class="w-full mt-1 p-2 bg-slate-800 border border-slate-600 rounded text-slate-100" disabled />
+            </div>
+            <div></div>
+            <div></div>
           </div>
 
           
@@ -2993,11 +3001,11 @@ button {
               <label class="text-xs text-slate-400">Min Stability %</label>
               <input id="xdigits-tune-min-stability" type="number" min="0" max="100" value="85" style="width:80px;padding:6px;border-radius:6px;background:#0b1220;color:#cbd5e1;border:1px solid #334155" />
               <label class="text-xs text-slate-400">Bias × Threshold</label>
-              <input id="xdigits-tune-bias-mult" type="number" min="0" max="5" step="0.1" value="1.0" style="width:80px;padding:6px;border-radius:6px;background:#0b1220;color:#cbd5e1;border:1px solid #334155" />
+              <input id="xdigits-tune-bias-mult" type="number" min="0" max="10" step="0.001" value="0.05" style="width:80px;padding:6px;border-radius:6px;background:#0b1220;color:#cbd5e1;border:1px solid #334155" />
               <label class="text-xs text-slate-400">Min Momentum</label>
-              <input id="xdigits-tune-min-momentum" type="number" min="0" step="0.0001" value="0.0005" style="width:110px;padding:6px;border-radius:6px;background:#0b1220;color:#cbd5e1;border:1px solid #334155" />
+              <input id="xdigits-tune-min-momentum" type="number" min="0.0004" max="0.01" step="0.000001" value="0.0005" style="width:110px;padding:6px;border-radius:6px;background:#0b1220;color:#cbd5e1;border:1px solid #334155" />
               <label class="text-xs text-slate-400">Cooldown (ms)</label>
-              <input id="xdigits-tune-cooldown" type="number" min="0" value="30000" style="width:110px;padding:6px;border-radius:6px;background:#0b1220;color:#cbd5e1;border:1px solid #334155" />
+              <input id="xdigits-tune-cooldown" type="number" min="2000" max="3000" step="100" value="2000" style="width:110px;padding:6px;border-radius:6px;background:#0b1220;color:#cbd5e1;border:1px solid #334155" />
               <label class="text-xs text-slate-400">Min Occurrences</label>
               <input id="xdigits-tune-min-occurrences" type="number" min="0" value="3" style="width:80px;padding:6px;border-radius:6px;background:#0b1220;color:#cbd5e1;border:1px solid #334155" />
             </div>
@@ -3414,7 +3422,8 @@ autoTradingEnabled:true,
     enabled:true,
     barrier:5,              // Digit threshold for ICF X strategy (1-9)
     confidenceBoost:30,     // Percentage boost to add to confidence score (0-100)
-    lookback:20             // Number of ticks to use for per-digit stats
+    lookback:20,            // Number of ticks to use for per-digit stats
+    maxDigits:500           // Max stored historical digits for analysis (clamped 20..5000)
   },
 
   // Burst Protection (optional): stand down briefly during tick-volatility bursts (best for Vol 1s)
@@ -4733,6 +4742,7 @@ const dom = {
   kutMilzAiIndicator: $("kutMilzAi-indicator"),
   kutMilzAiBarrier: $("kutMilzAi-barrier"),
   kutMilzAiLookback: $("kutMilzAi-lookback"),
+  kutMilzAiMaxDigits: $("kutMilzAi-max-digits"),
   kutMilzAiIgnoreSamples: $("kutMilzAi-ignore-samples"),
   kutMilzAiBoost: $("kutMilzAi-boost"),
   kutMilzAiStatus: $("kutMilzAi-status"),
@@ -4887,6 +4897,24 @@ const dom = {
   aiResetAllBtn: $("ai-reset-all-btn"),
 
 };
+
+// Track which inputs the user has manually edited so automatic UI refreshes
+// (setIfNotEditing) do not overwrite their choices. A simple Set of element
+// IDs is sufficient and persisted for the session only.
+window._userEditedInputs = new Set();
+function attachUserEditTracking(){
+  try{
+    Object.keys(dom).forEach(k => {
+      const el = dom[k];
+      if (!el || !el.addEventListener || !el.id) return;
+      // mark on input/change
+      el.addEventListener('input', ()=>{ try{ window._userEditedInputs.add(el.id); }catch(_){}});
+      el.addEventListener('change', ()=>{ try{ window._userEditedInputs.add(el.id); }catch(_){}});
+    });
+  }catch(_){ }
+}
+attachUserEditTracking();
+window.clearUserEditedInputs = function(){ try{ window._userEditedInputs.clear(); }catch(_){ } };
 
 /* =========================================================
    UI helpers
@@ -5241,6 +5269,10 @@ function setSellable(isSellable){
 function setIfNotEditing(el, value){
   if (!el) return;
   if (document.activeElement === el) return;
+  // If the user manually edited this input, don't override their value
+  try{
+    if (window._userEditedInputs && el.id && window._userEditedInputs.has(el.id)) return;
+  }catch(_){ }
   el.value = value;
 }
 
@@ -5552,6 +5584,7 @@ function updateUI(){
   }
   setIfNotEditing(dom.kutMilzAiBarrier, String(appState.kutMilzAi?.barrier ?? 5));
   setIfNotEditing(dom.kutMilzAiLookback, String(appState.kutMilzAi?.lookback ?? 33));
+  if (dom.kutMilzAiMaxDigits) setIfNotEditing(dom.kutMilzAiMaxDigits, String(appState.kutMilzAi?.maxDigits ?? 500));
   if (dom.kutMilzAiIgnoreSamples && document.activeElement !== dom.kutMilzAiIgnoreSamples) dom.kutMilzAiIgnoreSamples.checked = !!appState.kutMilzAi?.ignoreSampleThreshold;
   setIfNotEditing(dom.kutMilzAiBoost, String(appState.kutMilzAi?.confidenceBoost ?? 30));
   if (dom.xdigitsAutoConfirm && appState.kutMilzAi) dom.xdigitsAutoConfirm.checked = !!appState.kutMilzAi?.autoConfirmPrice;
@@ -5561,9 +5594,9 @@ function updateUI(){
     dom.xdigitsAutoConfirmBtn.style.background = on ? '#059669' : '#374151';
   }
   if (dom.xdigitsTuneMinStability && appState.kutMilzAi) setIfNotEditing(dom.xdigitsTuneMinStability, String(appState.kutMilzAi?.minStability ?? 85));
-  if (dom.xdigitsTuneBiasMult && appState.kutMilzAi) setIfNotEditing(dom.xdigitsTuneBiasMult, String(appState.kutMilzAi?.biasMultiplier ?? 1.0));
+  if (dom.xdigitsTuneBiasMult && appState.kutMilzAi) setIfNotEditing(dom.xdigitsTuneBiasMult, String(appState.kutMilzAi?.biasMultiplier ?? 0.05));
   if (dom.xdigitsTuneMinMomentum && appState.kutMilzAi) setIfNotEditing(dom.xdigitsTuneMinMomentum, String(appState.kutMilzAi?.minMomentum ?? 0.0005));
-  if (dom.xdigitsTuneCooldown && appState.kutMilzAi) setIfNotEditing(dom.xdigitsTuneCooldown, String(appState.kutMilzAi?.signalCooldownMs ?? 30000));
+  if (dom.xdigitsTuneCooldown && appState.kutMilzAi) setIfNotEditing(dom.xdigitsTuneCooldown, String(appState.kutMilzAi?.signalCooldownMs ?? 2000));
   if (dom.xdigitsTuneMinOccurrences && appState.kutMilzAi) setIfNotEditing(dom.xdigitsTuneMinOccurrences, String(appState.kutMilzAi?.minOccurrences ?? 3));
   if (dom.xdigitsManualChk && appState.kutMilzAi) dom.xdigitsManualChk.checked = !!appState.kutMilzAi?.manualSignalEnabled;
   if (dom.xdigitsManualSel && appState.kutMilzAi) dom.xdigitsManualSel.value = appState.kutMilzAi?.manualSignalChoice || 'AUTO';
@@ -5746,6 +5779,7 @@ function setSettingsLock(isLocked){
     if (dom.kutMilzAiBarrier) dom.kutMilzAiBarrier.disabled = !kutAllowed;
     if (dom.kutMilzAiBoost) dom.kutMilzAiBoost.disabled = !kutAllowed;
     if (dom.kutMilzAiLookback) dom.kutMilzAiLookback.disabled = !kutAllowed;
+    if (dom.kutMilzAiMaxDigits) dom.kutMilzAiMaxDigits.disabled = !kutAllowed;
   }catch(_){ }
 
   // Disable Xdigits-protected-defaults when settings are locked
@@ -5833,6 +5867,7 @@ function updateStateFromUI(){
     if (dom.kutMilzAiToggle) appState.kutMilzAi.enabled = !!dom.kutMilzAiToggle.checked;
     if (dom.kutMilzAiBarrier) appState.kutMilzAi.barrier = Math.max(1, Math.min(9, parseInt(dom.kutMilzAiBarrier.value) || 5));
     if (dom.kutMilzAiLookback) appState.kutMilzAi.lookback = Math.max(10, Math.min(200, parseInt(dom.kutMilzAiLookback.value) || 20));
+    if (dom.kutMilzAiMaxDigits) appState.kutMilzAi.maxDigits = Math.max(20, Math.min(5000, parseInt(dom.kutMilzAiMaxDigits.value) || 500));
     if (dom.kutMilzAiIgnoreSamples) appState.kutMilzAi.ignoreSampleThreshold = !!dom.kutMilzAiIgnoreSamples.checked;
     if (dom.kutMilzAiBoost) appState.kutMilzAi.confidenceBoost = Math.max(0, Math.min(100, parseInt(dom.kutMilzAiBoost.value) || 30));
 
@@ -5840,9 +5875,14 @@ function updateStateFromUI(){
     try{
       if (!appState.kutMilzAi) appState.kutMilzAi = {};
       if (dom.xdigitsTuneMinStability) appState.kutMilzAi.minStability = Math.max(0, Math.min(100, parseFloat(dom.xdigitsTuneMinStability.value) || 85));
-      if (dom.xdigitsTuneBiasMult) appState.kutMilzAi.biasMultiplier = Math.max(0, parseFloat(dom.xdigitsTuneBiasMult.value) || 1.0);
-      if (dom.xdigitsTuneMinMomentum) appState.kutMilzAi.minMomentum = Math.max(0, parseFloat(dom.xdigitsTuneMinMomentum.value) || 0.0005);
-      if (dom.xdigitsTuneCooldown) appState.kutMilzAi.signalCooldownMs = Math.max(0, parseInt(dom.xdigitsTuneCooldown.value) || 30000);
+      if (dom.xdigitsTuneBiasMult) appState.kutMilzAi.biasMultiplier = Math.max(0, Math.min(10, parseFloat(dom.xdigitsTuneBiasMult.value) || 0.05));
+      if (dom.xdigitsTuneMinMomentum) appState.kutMilzAi.minMomentum = Math.max(0.0004, Math.min(0.01, parseFloat(dom.xdigitsTuneMinMomentum.value) || 0.0005));
+      if (dom.xdigitsTuneCooldown) {
+        // clamp cooldown between 2000ms and 3000ms (user-requested)
+        let v = parseInt(dom.xdigitsTuneCooldown.value) || 2000;
+        v = Math.max(2000, Math.min(3000, v));
+        appState.kutMilzAi.signalCooldownMs = v;
+      }
       if (dom.xdigitsTuneMinOccurrences) appState.kutMilzAi.minOccurrences = Math.max(0, parseInt(dom.xdigitsTuneMinOccurrences.value) || 3);
       if (dom.xdigitsAlwaysOn) appState.kutMilzAi.alwaysOn = !!dom.xdigitsAlwaysOn.checked;
     }catch(e){ /* non-fatal */ }
@@ -6320,7 +6360,14 @@ function updateClustering(price){
   // keep 0..9 digit range
 
   appState.lastDigits.push(d);
-  while(appState.lastDigits.length > 50) appState.lastDigits.shift(); // Keep 50 digits for KutMilzAi analysis
+  // Keep up to configured max digits to limit memory — default/clamped via appState.kutMilzAi.maxDigits
+  try{
+    const maxDigits = Math.max(20, Math.min(5000, Number(appState.kutMilzAi?.maxDigits ?? 500)));
+    while(appState.lastDigits.length > maxDigits) appState.lastDigits.shift();
+  }catch(_){
+    // fallback to legacy 50 if something goes wrong
+    while(appState.lastDigits.length > 50) appState.lastDigits.shift();
+  }
 
   if (appState.lastDigits.length < 5) return;
 
@@ -6331,7 +6378,10 @@ function updateClustering(price){
 
   if (sameCount >= 3){
     dom.clusterAlert?.classList.remove("hidden");
-    if (dom.clusterText) dom.clusterText.textContent = `Clustering Detected: ${sameCount} repeats in last 5 ticks → possible reversal/indecision.`;
+    try{
+      const barrier = (appState.kutMilzAi && typeof appState.kutMilzAi.barrier !== 'undefined') ? appState.kutMilzAi.barrier : (document.getElementById('kutMilzAi-barrier') ? document.getElementById('kutMilzAi-barrier').value : '?');
+      if (dom.clusterText) dom.clusterText.textContent = `Clustering Detected (Barrier ${barrier}): ${sameCount} repeats in last 5 ticks → possible reversal/indecision.`;
+    }catch(_){ if (dom.clusterText) dom.clusterText.textContent = `Clustering Detected: ${sameCount} repeats in last 5 ticks → possible reversal/indecision.`; }
   } else {
     dom.clusterAlert?.classList.add("hidden");
   }
@@ -6884,9 +6934,9 @@ function computeAndUpdateBias(){
       } else {
         // Load tuning parameters (fall back to defaults)
         let minStability = Number(cfg.minStability ?? appState.kutMilzAi?.minStability ?? 85);
-        let biasMultiplier = Number(cfg.biasMultiplier ?? appState.kutMilzAi?.biasMultiplier ?? 1.0);
+        let biasMultiplier = Number(cfg.biasMultiplier ?? appState.kutMilzAi?.biasMultiplier ?? 0.05);
         let minMomentum = Number(cfg.minMomentum ?? appState.kutMilzAi?.minMomentum ?? 0.0005);
-        const signalCooldownMs = Number(cfg.signalCooldownMs ?? appState.kutMilzAi?.signalCooldownMs ?? 30000);
+        const signalCooldownMs = Number(cfg.signalCooldownMs ?? appState.kutMilzAi?.signalCooldownMs ?? 2000);
         let minOccurrences = Number(cfg.minOccurrences ?? appState.kutMilzAi?.minOccurrences ?? 3);
 
         // Relax gating override (quick manual/testing toggle)
@@ -6931,7 +6981,9 @@ function computeAndUpdateBias(){
           }
         } else {
           // Final gating conditions: stability, magnitude, momentum, occurrences, cooldown
-          if (stabilityPct >= minStability && absBias >= requiredBias && Math.abs(priceMomentum) >= minMomentum && occurrences >= minOccurrences && cooldownPassed){
+          // Treat momentum as satisfied when stability already meets user's minStability
+          const momentumOk = (Math.abs(priceMomentum) >= minMomentum) || (stabilityPct >= minStability);
+          if (stabilityPct >= minStability && absBias >= requiredBias && momentumOk && occurrences >= minOccurrences && cooldownPassed){
             signal = adjustedAverageBias > 0 ? 'CALL NOW' : 'PUT NOW';
             appState.kutMilzAi._lastSignalAt = now;
             appState.kutMilzAi._lastSignal = signal;
@@ -6988,7 +7040,8 @@ function computeAndUpdateBias(){
 
 // Run periodic bias updater every 1s
 if (!window._kutMilzBiasTicker){
-  window._kutMilzBiasTicker = setInterval(()=>{ try{ computeAndUpdateBias(); }catch(e){} }, 1000);
+  const initialBiasInterval = (window.appState && window.appState.kutMilzAi && window.appState.kutMilzAi.signalCooldownMs) ? window.appState.kutMilzAi.signalCooldownMs : 2000;
+  window._kutMilzBiasTicker = setInterval(()=>{ try{ computeAndUpdateBias(); }catch(e){} }, initialBiasInterval);
 }
 
 // Helper to set digits-to-watch to barrier digit
@@ -7368,7 +7421,7 @@ window.clearKutMilzState = function(){
           const cfg = appState.kutMilzAi;
           const now = Date.now();
           const lastSignalAt = cfg._lastSignalAt || 0;
-          const signalCooldownMs = Number(cfg.signalCooldownMs ?? cfg.signalCooldownMs ?? 30000);
+          const signalCooldownMs = Number(cfg.signalCooldownMs ?? cfg.signalCooldownMs ?? 2000);
           const remaining = signalCooldownMs - (now - lastSignalAt);
           if (remaining > 0){ showToast && showToast('Force blocked: cooldown ' + Math.ceil(remaining/1000) + 's'); return; }
           cfg._forceOnce = true;
@@ -9324,9 +9377,9 @@ document.addEventListener("DOMContentLoaded", () => {
     try{
       if (!appState.kutMilzAi) appState.kutMilzAi = {};
       if (dom.xdigitsTuneMinStability){ dom.xdigitsTuneMinStability.addEventListener('change', ()=>{ appState.kutMilzAi.minStability = Number(dom.xdigitsTuneMinStability.value || 85); computeAndUpdateBias(); persistKutMilzState(); }); }
-      if (dom.xdigitsTuneBiasMult){ dom.xdigitsTuneBiasMult.addEventListener('change', ()=>{ appState.kutMilzAi.biasMultiplier = Number(dom.xdigitsTuneBiasMult.value || 1.0); computeAndUpdateBias(); persistKutMilzState(); }); }
-      if (dom.xdigitsTuneMinMomentum){ dom.xdigitsTuneMinMomentum.addEventListener('change', ()=>{ appState.kutMilzAi.minMomentum = Number(dom.xdigitsTuneMinMomentum.value || 0.0005); computeAndUpdateBias(); persistKutMilzState(); }); }
-      if (dom.xdigitsTuneCooldown){ dom.xdigitsTuneCooldown.addEventListener('change', ()=>{ appState.kutMilzAi.signalCooldownMs = Number(dom.xdigitsTuneCooldown.value || 30000); computeAndUpdateBias(); persistKutMilzState(); }); }
+      if (dom.xdigitsTuneBiasMult){ dom.xdigitsTuneBiasMult.addEventListener('change', ()=>{ appState.kutMilzAi.biasMultiplier = Math.max(0, Math.min(10, Number(dom.xdigitsTuneBiasMult.value || 0.05))); computeAndUpdateBias(); persistKutMilzState(); }); }
+      if (dom.xdigitsTuneMinMomentum){ dom.xdigitsTuneMinMomentum.addEventListener('change', ()=>{ appState.kutMilzAi.minMomentum = Math.max(0.0004, Math.min(0.01, Number(dom.xdigitsTuneMinMomentum.value || 0.0005))); computeAndUpdateBias(); persistKutMilzState(); }); }
+      if (dom.xdigitsTuneCooldown){ dom.xdigitsTuneCooldown.addEventListener('change', ()=>{ let v = Number(dom.xdigitsTuneCooldown.value || 2000); v = Math.max(2000, Math.min(3000, v)); appState.kutMilzAi.signalCooldownMs = v; computeAndUpdateBias(); persistKutMilzState(); try{ if(window._kutMilzBiasTicker) clearInterval(window._kutMilzBiasTicker); window._kutMilzBiasTicker = setInterval(()=>{ try{ computeAndUpdateBias(); }catch(e){} }, appState.kutMilzAi.signalCooldownMs || 2000); }catch(_){ } }); }
       if (dom.xdigitsTuneMinOccurrences){ dom.xdigitsTuneMinOccurrences.addEventListener('change', ()=>{ appState.kutMilzAi.minOccurrences = Number(dom.xdigitsTuneMinOccurrences.value || 3); computeAndUpdateBias(); persistKutMilzState(); }); }
 
       if (dom.xdigitsPriceInfluence){ dom.xdigitsPriceInfluence.addEventListener('change', ()=>{ appState.kutMilzAi.priceInfluence = Number(dom.xdigitsPriceInfluence.value || 20); computeAndUpdateBias(); persistKutMilzState(); }); }
@@ -9408,6 +9461,7 @@ document.addEventListener("DOMContentLoaded", () => {
     dom.kutMilzAiBarrier?.addEventListener("input", () => updateStateFromUI());
     dom.kutMilzAiBoost?.addEventListener("input", () => updateStateFromUI());
     dom.kutMilzAiLookback?.addEventListener("input", () => updateStateFromUI());
+    dom.kutMilzAiMaxDigits?.addEventListener("input", () => updateStateFromUI());
     dom.kutMilzAiIgnoreSamples?.addEventListener("change", () => updateStateFromUI());
 
     // Burst Protection + Soft Score
