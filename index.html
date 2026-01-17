@@ -1609,15 +1609,18 @@ button {
 /* iOS Safari specific fixes */
 @supports (-webkit-touch-callout: none) {
   .login-card {
+    backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
   }
 
   .form-input {
+    appearance: none;
     -webkit-appearance: none;
     border-radius: 0.75rem;
   }
 
   .login-button {
+    appearance: none;
     -webkit-appearance: none;
   }
 }
@@ -1690,6 +1693,69 @@ button {
   </div>
 </div>
 
+  <!-- Always-ON Confirmation Modal -->
+      <div id="xdigits-alwayson-modal" style="display:none;position: fixed; inset:0; background: rgba(0,0,0,0.7); z-index: 10000; align-items:center; justify-content:center;">
+        <div style="background:#071024;border-radius:10px;padding:20px;max-width:420px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.7);border:1px solid #1f2937;color:#cbd5e1;">
+          <h3 style="font-size:18px;margin-bottom:8px;color:#93c5fd;">Enable Always ON?</h3>
+          <p style="font-size:13px;margin-bottom:16px;color:#cbd5e1;">Forcing signals can be risky. Confirm you understand this will bypass gating and generate signals continuously until disabled.</p>
+          <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button id="xdigits-alwayson-cancel" class="px-3 py-2 rounded bg-slate-700 text-white">Cancel</button>
+            <button id="xdigits-alwayson-confirm" class="px-3 py-2 rounded bg-emerald-600 text-white">Enable Always ON</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Auto Save Confirmation Modal -->
+      <div id="xdigits-autosave-modal" style="display:none;position: fixed; inset:0; background: rgba(0,0,0,0.7); z-index: 10000; align-items:center; justify-content:center;">
+        <div style="background:#071024;border-radius:10px;padding:18px;max-width:420px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.7);border:1px solid #1f2937;color:#cbd5e1;">
+          <h3 style="font-size:18px;margin-bottom:8px;color:#93c5fd;">Enable Auto Save?</h3>
+          <p style="font-size:13px;margin-bottom:16px;color:#cbd5e1;">Auto Save periodically persists trimmed KutMilz state to localStorage. Confirm to enable.</p>
+          <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button id="xdigits-autosave-cancel" class="px-3 py-2 rounded bg-slate-700 text-white">Cancel</button>
+            <button id="xdigits-autosave-confirm" class="px-3 py-2 rounded bg-emerald-600 text-white">Enable Auto Save</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Store Everything Confirmation Modal -->
+      <div id="xdigits-store-modal" style="display:none;position: fixed; inset:0; background: rgba(0,0,0,0.7); z-index: 10000; align-items:center; justify-content:center;">
+        <div style="background:#071024;border-radius:10px;padding:18px;max-width:420px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.7);border:1px solid #1f2937;color:#cbd5e1;">
+          <h3 style="font-size:18px;margin-bottom:8px;color:#93c5fd;">Enable Store Everything?</h3>
+          <p style="font-size:13px;margin-bottom:16px;color:#cbd5e1;">This will persist a fuller snapshot (safe clones) including more appState data. It avoids sensitive fields but may store larger data. Confirm to enable.</p>
+          <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button id="xdigits-store-cancel" class="px-3 py-2 rounded bg-slate-700 text-white">Cancel</button>
+            <button id="xdigits-store-confirm" class="px-3 py-2 rounded bg-emerald-600 text-white">Enable Store Everything</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Allow Local Storage Confirmation Modal -->
+      <div id="xdigits-allowls-modal" style="display:none;position: fixed; inset:0; background: rgba(0,0,0,0.7); z-index: 10000; align-items:center; justify-content:center;">
+        <div style="background:#071024;border-radius:10px;padding:18px;max-width:420px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.7);border:1px solid #1f2937;color:#cbd5e1;">
+          <h3 style="font-size:18px;margin-bottom:8px;color:#93c5fd;">Allow Local Storage?</h3>
+          <p style="font-size:13px;margin-bottom:16px;color:#cbd5e1;">Allowing localStorage lets this site save the KutMilz state locally. Confirm to allow.</p>
+          <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button id="xdigits-allowls-cancel" class="px-3 py-2 rounded bg-slate-700 text-white">Cancel</button>
+            <button id="xdigits-allowls-confirm" class="px-3 py-2 rounded bg-emerald-600 text-white">Allow Local Storage</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Relax Gating Confirmation Modal -->
+      <div id="xdigits-relax-modal" style="display:none;position: fixed; inset:0; background: rgba(0,0,0,0.7); z-index: 10000; align-items:center; justify-content:center;">
+        <div style="background:#071024;border-radius:10px;padding:18px;max-width:420px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.7);border:1px solid #1f2937;color:#cbd5e1;">
+          <h3 style="font-size:18px;margin-bottom:8px;color:#93c5fd;">Enable Relax Gating?</h3>
+          <p style="font-size:13px;margin-bottom:16px;color:#cbd5e1;">Relaxing gating lowers thresholds and makes signals easier to hit. Confirm to enable.</p>
+          <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button id="xdigits-relax-cancel" class="px-3 py-2 rounded bg-slate-700 text-white">Cancel</button>
+            <button id="xdigits-relax-confirm" class="px-3 py-2 rounded bg-emerald-600 text-white">Enable Relax Gating</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toast container (created dynamically) -->
+      <div id="xdigits-toast-container" style="position:fixed;right:16px;bottom:16px;z-index:99999;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none;"></div>
+
 <div class="container-wrapper hidden" id="app-root">
   <h1 class="text-3xl text-center mb-6 brand-title">KUT MILLZ AI</h1>
 
@@ -1708,6 +1774,22 @@ button {
           <div class="flex justify-between items-center">
             <span class="text-sm">Connection:</span>
             <span id="connection-status" class="status-pill bg-red-800 text-white">DISCONNECTED</span>
+          </div>
+          <div id="xdigits-bias-ui" style="width:100%;margin-bottom:10px;display:grid;grid-template-columns:1fr;gap:6px;">
+            <div style="width:100%;background:#071327;padding:8px;border-radius:8px;border:1px solid #213547;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <div class="text-xs text-slate-400">Average Bias</div>
+                <div id="xdigits-avg-bias" class="text-sm text-slate-200">0.00</div>
+              </div>
+              <div style="height:12px;background:#0b1220;border-radius:6px;position:relative;overflow:hidden;border:1px solid #2b4356">
+                <div id="xdigits-bias-bar" style="position:absolute;left:50%;top:0;bottom:0;width:0%;background:linear-gradient(90deg,#dc2626,#16a34a);transform-origin:left center;"></div>
+                <div style="position:absolute;left:50%;top:-6px;font-size:10px;color:#94a3b8;">0</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+                <div class="text-xs text-slate-400">Stability</div>
+                <div id="xdigits-bias-stability" class="text-sm text-slate-200">0%</div>
+              </div>
+            </div>
           </div>
 
           <div class="flex items-center gap-3 mt-3">
@@ -2755,7 +2837,7 @@ button {
             </div>
             <div>
               <label class="text-xs text-slate-400">Lookback (ticks)</label>
-              <input id="kutMilzAi-lookback" type="number" min="10" max="200" step="1" value="20"
+              <input id="kutMilzAi-lookback" type="number" min="10" max="200" step="1" value="33"
                 class="w-full mt-1 p-2 bg-slate-800 border border-slate-600 rounded text-slate-100" disabled />
             </div>
           </div>
@@ -2861,6 +2943,89 @@ button {
       <!-- Xdigits Trading Panel -->
       <div class="card" id="xdigits-panel">
         <div id="kutMilzAi-status" class="text-sm mb-2 text-slate-300">KutMilzAi Pro Engine status...</div>
+        <div id="xdigits-avg-bias-header-wrap" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;">
+          <div id="xdigits-avg-bias-header" style="font-size:1.125rem;font-weight:600;color:#93c5fd">Average Bias: <span id="xdigits-avg-bias-header-val">0.000</span></div>
+        </div>
+          <div id="xdigits-market-price-wrap" style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div id="xdigits-market-price" style="font-size:1rem;font-weight:600;color:#f1f5f9">Market: <span id="xdigits-market-price-val">--</span></div>
+          <button id="xdigits-confirm-price-btn" class="px-2 py-1 text-xs rounded bg-slate-700 text-white" type="button">Confirm Price</button>
+          <button id="xdigits-auto-confirm-btn" class="px-2 py-1 text-xs rounded bg-emerald-600 text-white" type="button" style="margin-left:4px">Auto: ON</button>
+          <label style="display:flex;align-items:center;gap:6px;color:#cbd5e1;font-size:0.85rem;margin-left:6px;">
+            <input type="checkbox" id="xdigits-auto-confirm-price" style="width:16px;height:16px;" />
+            Auto-confirm price on market change
+          </label>
+          <div id="xdigits-market-price-confirmed" style="margin-left:auto;font-size:0.85rem;color:#94a3b8">Not confirmed</div>
+        </div>
+        <div id="xdigits-avg-bias-mini-wrap" style="margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:12px;font-size:0.95rem;color:#cbd5e1">
+            <div style="min-width:90px;font-weight:600;color:#e2e8f0">Average Bias</div>
+            <div id="xdigits-avg-bias-mini" style="font-weight:700;color:#fca5a5">0.000</div>
+            <div id="xdigits-avg-bias-mini-zero" style="color:#94a3b8">0</div>
+            <div style="margin-left:auto;color:#94a3b8">Stability <span id="xdigits-bias-stability-mini" style="font-weight:700;color:#cbd5e1">0%</span></div>
+          </div>
+          <div style="margin-top:6px;">
+            <div id="xdigits-avg-bias-signal" style="font-weight:800;color:#94a3b8">WAIT</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+            <label style="display:flex;align-items:center;gap:6px;color:#cbd5e1;font-size:0.9rem;">
+              <input type="checkbox" id="xdigits-manual-signal" style="width:16px;height:16px;" />
+              Manual Signal
+            </label>
+            <select id="xdigits-manual-signal-select" style="padding:6px;border-radius:6px;background:#071327;color:#cbd5e1;border:1px solid #213547">
+              <option value="AUTO">Auto</option>
+              <option value="CALL">CALL</option>
+              <option value="PUT">PUT</option>
+            </select>
+            <button id="xdigits-set-watch-barrier" onclick="window.setXdigitsWatchToBarrier && window.setXdigitsWatchToBarrier()" class="px-3 py-1 rounded bg-slate-700 text-xs text-white" type="button">Set Watch → Barrier</button>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+            <label class="text-xs text-slate-400" style="min-width:120px">Price Influence %</label>
+            <input id="xdigits-price-influence" type="number" min="0" max="100" step="5" value="20" style="width:80px;padding:6px;border-radius:6px;background:#071327;color:#cbd5e1;border:1px solid #213547" />
+            <div class="text-xs text-slate-400">(uses recent price momentum to nudge bias)</div>
+          </div>
+          <!-- Signal Tuning -->
+          <div style="margin-top:10px;padding:10px;border-radius:6px;background:#071327;border:1px solid #213547;">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+              <div style="font-weight:600;color:#93c5fd">Signal Tuning (editable)</div>
+              <div class="text-xs text-slate-400">Adjust gating used for CALL/PUT signals</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
+              <label class="text-xs text-slate-400">Min Stability %</label>
+              <input id="xdigits-tune-min-stability" type="number" min="0" max="100" value="85" style="width:80px;padding:6px;border-radius:6px;background:#0b1220;color:#cbd5e1;border:1px solid #334155" />
+              <label class="text-xs text-slate-400">Bias × Threshold</label>
+              <input id="xdigits-tune-bias-mult" type="number" min="0" max="5" step="0.1" value="1.0" style="width:80px;padding:6px;border-radius:6px;background:#0b1220;color:#cbd5e1;border:1px solid #334155" />
+              <label class="text-xs text-slate-400">Min Momentum</label>
+              <input id="xdigits-tune-min-momentum" type="number" min="0" step="0.0001" value="0.0005" style="width:110px;padding:6px;border-radius:6px;background:#0b1220;color:#cbd5e1;border:1px solid #334155" />
+              <label class="text-xs text-slate-400">Cooldown (ms)</label>
+              <input id="xdigits-tune-cooldown" type="number" min="0" value="30000" style="width:110px;padding:6px;border-radius:6px;background:#0b1220;color:#cbd5e1;border:1px solid #334155" />
+              <label class="text-xs text-slate-400">Min Occurrences</label>
+              <input id="xdigits-tune-min-occurrences" type="number" min="0" value="3" style="width:80px;padding:6px;border-radius:6px;background:#0b1220;color:#cbd5e1;border:1px solid #334155" />
+            </div>
+          </div>
+          
+          <!-- Backtester / A-B tester -->
+          <div style="margin-top:12px;padding:10px;border-radius:6px;background:#071327;border:1px solid #213547;">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+              <div style="font-weight:600;color:#93c5fd">A/B Backtester</div>
+              <div class="text-xs text-slate-400">Run a quick in-memory comparison over recent digits</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+              <label class="text-xs text-slate-400">A: Lookback</label>
+              <input id="ab-a-lookback" type="number" min="10" max="200" value="33" style="width:80px;padding:6px;border-radius:6px;background:#0b1220;color:#cbd5e1;border:1px solid #334155" />
+              <label class="text-xs text-slate-400">A: Boost</label>
+              <input id="ab-a-boost" type="number" min="0" max="100" value="30" style="width:80px;padding:6px;border-radius:6px;background:#0b1220;color:#cbd5e1;border:1px solid #334155" />
+              <label class="text-xs text-slate-400">B: Lookback</label>
+              <input id="ab-b-lookback" type="number" min="10" max="200" value="20" style="width:80px;padding:6px;border-radius:6px;background:#0b1220;color:#cbd5e1;border:1px solid #334155" />
+              <label class="text-xs text-slate-400">B: Boost</label>
+              <input id="ab-b-boost" type="number" min="0" max="100" value="10" style="width:80px;padding:6px;border-radius:6px;background:#0b1220;color:#cbd5e1;border:1px solid #334155" />
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button id="xdigits-run-ab" class="px-3 py-1 rounded bg-sky-600 text-white text-sm">Run Backtest</button>
+              <button id="xdigits-export-ab" class="px-3 py-1 rounded bg-slate-700 text-white text-sm">Export Results</button>
+              <div id="xdigits-ab-results" style="margin-left:auto;color:#cbd5e1;font-size:13px">No results</div>
+            </div>
+          </div>
+        </div>
         <h2 class="text-xl font-semibold mb-4 text-blue-400" style="display:inline-flex;align-items:center;">Xdigits - KutMilzAi Predictions
           <span id="xdigits-status-badge" style="display:none;margin-left:10px;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:600"></span>
         </h2>
@@ -2871,6 +3036,56 @@ button {
           </div>
           
           <p class="text-xs text-slate-400 mb-2">Barrier: <span id="xdigits-barrier-value" style="color: #fbbf24; font-weight: bold;">5</span></p>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+            <div style="display:flex;gap:8px;align-items:center;">
+              <label for="xdigits-protected-defaults" class="text-xs text-slate-400" style="min-width:120px;margin-right:6px;">Protected Defaults</label>
+              <input type="checkbox" id="xdigits-protected-defaults" style="width:18px;height:18px;" />
+            </div>
+            <label class="text-xs text-slate-400" style="min-width:120px">Barrier (0–9)</label>
+            <span id="xdigits-active-threshold" class="text-xs text-slate-200" style="margin-left:6px;">Active Bias Threshold: ±0.35</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+            <label for="xdigits-digits-watch" class="text-xs text-slate-400" style="min-width:120px">Digits to Watch</label>
+            <select id="xdigits-digits-watch" style="padding:6px;border-radius:6px;background:#0b1220;color:#cbd5e1;border:1px solid #334155">
+              <option value="auto">Auto (sync with Barrier)</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+              <option value="9">9</option>
+              <option value="10">10</option>
+            </select>
+          </div>
+
+          <div id="xdigits-market-options-wrap" style="display:none;margin-bottom:10px;">
+            <label class="text-xs text-slate-400" style="display:block;margin-bottom:6px">MARKET OPTIONS</label>
+            <select id="xdigits-market-options" style="width:100%;padding:8px;border-radius:6px;background:#0b1220;color:#cbd5e1;border:1px solid #334155">
+              <optgroup label="RiskyX 3">
+                <option value="JD10">Jump 10 Index</option>
+                <option value="JD25">Jump 25 Index</option>
+                <option value="JD75">Jump 75 Index</option>
+                <option value="JD100">Jump 100 Index</option>
+              </optgroup>
+              <optgroup label="LondonX 4">
+                <option value="R_10">Volatility 10 Index</option>
+                <option value="R_25">Volatility 25 Index</option>
+                <option value="R_75">Volatility 75 Index</option>
+                <option value="R_100">Volatility 100 Index</option>
+              </optgroup>
+              <optgroup label="Strong XPairs 5">
+                <option value="R_10S">Volatility 10 (1s) Index</option>
+                <option value="R_100S">Volatility 100 (1s) Index</option>
+              </optgroup>
+              <optgroup label="ConfirmationXPairs">
+                <option value="R_25S">Volatility 25 (1s) Index</option>
+                <option value="R_75S">Volatility 75 (1s) Index</option>
+              </optgroup>
+            </select>
+          </div>
           <p class="text-xs text-slate-400 mb-3">Click digit to trade (🟢=CALL/UP | 🔴=PUT/DOWN)</p>
           
           <!-- Digit Grid with Predictions (compact) -->
@@ -2911,6 +3126,10 @@ button {
               <button class="px-2 py-2 text-lg font-bold rounded w-full" id="xdigit-9" onclick="showDigitModal(9)" style="background-color: #2563eb; color: white;">9</button>
               <p class="text-xs" id="xdigit-9-pred" style="font-size:11px; margin-top:6px;">--</p>
             </div>
+            <div style="text-align: center; grid-column: 2 / 3;">
+              <button class="px-2 py-2 text-lg font-bold rounded w-full" id="xdigit-0" onclick="showDigitModal(0)" style="background-color: #2563eb; color: white;">0</button>
+              <p class="text-xs" id="xdigit-0-pred" style="font-size:11px; margin-top:6px;">--</p>
+            </div>
           </div>
         </div>
         <div class="flex justify-center gap-3 mt-4">
@@ -2921,19 +3140,35 @@ button {
           <button class="px-4 py-2 rounded bg-slate-700 text-white hover:bg-slate-600 text-sm" onclick="window.exportKutMilzJson && window.exportKutMilzJson()" id="xdigits-export-btn">Export JSON (digits + accumulator)</button>
           <button class="px-4 py-2 rounded bg-slate-700 text-white hover:bg-slate-600 text-sm" onclick="window.exportKutMilzJsonBoth && window.exportKutMilzJsonBoth()" id="xdigits-export-both-btn">Export Both (Full + Trim)</button>
         </div>
-        <div class="flex justify-center gap-3 mt-3">
-          <label style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;">
-            <input type="checkbox" id="xdigits-autosave-toggle" style="width:16px;height:16px;" /> Auto Save Memory
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;">
-            <input type="checkbox" id="xdigits-store-everything" style="width:16px;height:16px;" /> Store Everything (safe)
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;">
-            <input type="checkbox" id="xdigits-allow-localstorage" style="width:16px;height:16px;" /> Allow Local Storage (site)
-          </label>
-          <button class="px-4 py-2 rounded bg-sky-600 text-white hover:bg-sky-500 text-sm" id="xdigits-save-btn">Save Memory</button>
-          <button class="px-4 py-2 rounded bg-amber-600 text-white hover:bg-amber-500 text-sm" id="xdigits-load-btn">Load Memory</button>
-          <button class="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-500 text-sm" id="xdigits-clear-memory-btn">Clear Memory</button>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;align-items:center;">
+          <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;max-width:920px;">
+            <label style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;">
+              <input type="checkbox" id="xdigits-autosave-toggle" style="width:16px;height:16px;" /> Auto Save Memory
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;">
+              <input type="checkbox" id="xdigits-store-everything" style="width:16px;height:16px;" /> Store Everything (safe)
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;">
+              <input type="checkbox" id="xdigits-allow-localstorage" style="width:16px;height:16px;" /> Allow Local Storage (site)
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;">
+              <input type="checkbox" id="xdigits-relax-gating" style="width:16px;height:16px;" /> Relax Gating (lower thresholds)
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;">
+              <input type="checkbox" id="xdigits-always-on" style="width:16px;height:16px;" /> Always ON (force signals)
+            </label>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px;align-items:center;width:100%;">
+            <button class="px-4 py-2 rounded bg-sky-600 text-white hover:bg-sky-500 text-sm" id="xdigits-save-btn" style="width:100%;max-width:420px;">Save Memory</button>
+            <button class="px-4 py-2 rounded bg-amber-600 text-white hover:bg-amber-500 text-sm" id="xdigits-load-btn" style="width:100%;max-width:420px;">Load Memory</button>
+            <button class="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-500 text-sm" id="xdigits-clear-memory-btn" style="width:100%;max-width:420px;">Clear Memory</button>
+            <button class="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-500 text-sm" id="xdigits-load-digits-btn" style="width:100%;max-width:420px;">Load Digits Only</button>
+            <button class="px-4 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-500 text-sm" id="xdigits-force-once-btn" style="width:100%;max-width:420px;">Force Once</button>
+          </div>
+        </div>
+        <div style="margin-top:8px;">
+          <div id="xdigits-diagnostics" style="font-size:12px;color:#cbd5e1;background:#071029;padding:8px;border-radius:6px;margin-top:8px;white-space:pre-wrap;max-height:160px;overflow:auto;">Diagnostics: --</div>
         </div>
       </div>
 
@@ -3006,6 +3241,25 @@ const TXLOG = $("tx-log");
 function logLine(msg){
   const t = new Date().toLocaleTimeString();
   const line = `[${t}] ${msg}`;
+
+// Toast container (for small feedback messages)
+window.showToast = function(message, timeout){
+  try{
+    timeout = Number(timeout || 3000);
+    let cont = document.getElementById('xdigits-toast-container');
+    if (!cont){
+      cont = document.createElement('div'); cont.id = 'xdigits-toast-container';
+      cont.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:99999;display:flex;flex-direction:column;gap:8px;align-items:flex-end;';
+      document.body.appendChild(cont);
+    }
+    const el = document.createElement('div');
+    el.textContent = message;
+    el.style.cssText = 'background:#0b1220;color:#e6f0ff;padding:8px 12px;border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,0.6);font-size:13px;';
+    cont.appendChild(el);
+    setTimeout(()=>{ try{ el.style.opacity = '0'; setTimeout(()=>{ try{ cont.removeChild(el); }catch(_){} },300); }catch(_){} }, timeout);
+    return el;
+  }catch(e){ console.error(e); }
+};
   console.log(line);
   if (LOG){
     LOG.textContent = (LOG.textContent ? (LOG.textContent + "\n") : "") + line;
@@ -4482,6 +4736,19 @@ const dom = {
   kutMilzAiIgnoreSamples: $("kutMilzAi-ignore-samples"),
   kutMilzAiBoost: $("kutMilzAi-boost"),
   kutMilzAiStatus: $("kutMilzAi-status"),
+  xdigitsAutoConfirm: $("xdigits-auto-confirm-price"),
+  xdigitsManualChk: $("xdigits-manual-signal"),
+  xdigitsManualSel: $("xdigits-manual-signal-select"),
+  xdigitsPriceInfluence: $("xdigits-price-influence"),
+  xdigitsAutoConfirmBtn: $("xdigits-auto-confirm-btn"),
+  xdigitsTuneMinStability: $("xdigits-tune-min-stability"),
+  xdigitsTuneBiasMult: $("xdigits-tune-bias-mult"),
+  xdigitsTuneMinMomentum: $("xdigits-tune-min-momentum"),
+  xdigitsTuneCooldown: $("xdigits-tune-cooldown"),
+  xdigitsTuneMinOccurrences: $("xdigits-tune-min-occurrences"),
+  xdigitsAlwaysOn: $("xdigits-always-on"),
+  xdigitsForceOnceBtn: $("xdigits-force-once-btn"),
+  xdigitsDiagnostics: $("xdigits-diagnostics"),
 
   // Burst Protection + Soft Score
   burstProtectToggle: $("burst-protect-toggle"),
@@ -5284,9 +5551,24 @@ function updateUI(){
     dom.kutMilzAiToggle.checked = !!appState.kutMilzAi.enabled;
   }
   setIfNotEditing(dom.kutMilzAiBarrier, String(appState.kutMilzAi?.barrier ?? 5));
-  setIfNotEditing(dom.kutMilzAiLookback, String(appState.kutMilzAi?.lookback ?? 20));
+  setIfNotEditing(dom.kutMilzAiLookback, String(appState.kutMilzAi?.lookback ?? 33));
   if (dom.kutMilzAiIgnoreSamples && document.activeElement !== dom.kutMilzAiIgnoreSamples) dom.kutMilzAiIgnoreSamples.checked = !!appState.kutMilzAi?.ignoreSampleThreshold;
   setIfNotEditing(dom.kutMilzAiBoost, String(appState.kutMilzAi?.confidenceBoost ?? 30));
+  if (dom.xdigitsAutoConfirm && appState.kutMilzAi) dom.xdigitsAutoConfirm.checked = !!appState.kutMilzAi?.autoConfirmPrice;
+  if (dom.xdigitsAutoConfirmBtn && appState.kutMilzAi){
+    const on = !!appState.kutMilzAi?.autoConfirmPrice;
+    dom.xdigitsAutoConfirmBtn.textContent = on ? 'Auto: ON' : 'Auto: OFF';
+    dom.xdigitsAutoConfirmBtn.style.background = on ? '#059669' : '#374151';
+  }
+  if (dom.xdigitsTuneMinStability && appState.kutMilzAi) setIfNotEditing(dom.xdigitsTuneMinStability, String(appState.kutMilzAi?.minStability ?? 85));
+  if (dom.xdigitsTuneBiasMult && appState.kutMilzAi) setIfNotEditing(dom.xdigitsTuneBiasMult, String(appState.kutMilzAi?.biasMultiplier ?? 1.0));
+  if (dom.xdigitsTuneMinMomentum && appState.kutMilzAi) setIfNotEditing(dom.xdigitsTuneMinMomentum, String(appState.kutMilzAi?.minMomentum ?? 0.0005));
+  if (dom.xdigitsTuneCooldown && appState.kutMilzAi) setIfNotEditing(dom.xdigitsTuneCooldown, String(appState.kutMilzAi?.signalCooldownMs ?? 30000));
+  if (dom.xdigitsTuneMinOccurrences && appState.kutMilzAi) setIfNotEditing(dom.xdigitsTuneMinOccurrences, String(appState.kutMilzAi?.minOccurrences ?? 3));
+  if (dom.xdigitsManualChk && appState.kutMilzAi) dom.xdigitsManualChk.checked = !!appState.kutMilzAi?.manualSignalEnabled;
+  if (dom.xdigitsManualSel && appState.kutMilzAi) dom.xdigitsManualSel.value = appState.kutMilzAi?.manualSignalChoice || 'AUTO';
+  setIfNotEditing(dom.xdigitsPriceInfluence, String(appState.kutMilzAi?.priceInfluence ?? 20));
+  
   if (dom.kutMilzAiStatus && appState.kutMilzAi){
     const on = !!appState.kutMilzAi.enabled;
     const barrier = appState.kutMilzAi.barrier ?? 5;
@@ -5466,6 +5748,12 @@ function setSettingsLock(isLocked){
     if (dom.kutMilzAiLookback) dom.kutMilzAiLookback.disabled = !kutAllowed;
   }catch(_){ }
 
+  // Disable Xdigits-protected-defaults when settings are locked
+  try{
+    const pd = document.getElementById('xdigits-protected-defaults');
+    if (pd){ pd.disabled = !!isLocked; pd.classList.toggle('opacity-60', !!isLocked); }
+  }catch(_){ }
+
   // Accumulator growth buttons are not native inputs; lock the whole Accu settings box.
   if (dom.accuSettings){
     dom.accuSettings.classList.toggle("pointer-events-none", isLocked);
@@ -5541,12 +5829,23 @@ function updateStateFromUI(){
     if (dom.softScoreBoostCd) appState.softScore.boostCooldownS = Math.max(0, parseInt(dom.softScoreBoostCd.value) || 20);
 
     // KutMilzAi Pro Engine
-    if (!appState.kutMilzAi) appState.kutMilzAi = { enabled:true, barrier:5, confidenceBoost:30, lookback:20, ignoreSampleThreshold:true };
+    if (!appState.kutMilzAi) appState.kutMilzAi = { enabled:true, barrier:5, confidenceBoost:30, lookback:33, ignoreSampleThreshold:true };
     if (dom.kutMilzAiToggle) appState.kutMilzAi.enabled = !!dom.kutMilzAiToggle.checked;
     if (dom.kutMilzAiBarrier) appState.kutMilzAi.barrier = Math.max(1, Math.min(9, parseInt(dom.kutMilzAiBarrier.value) || 5));
     if (dom.kutMilzAiLookback) appState.kutMilzAi.lookback = Math.max(10, Math.min(200, parseInt(dom.kutMilzAiLookback.value) || 20));
     if (dom.kutMilzAiIgnoreSamples) appState.kutMilzAi.ignoreSampleThreshold = !!dom.kutMilzAiIgnoreSamples.checked;
     if (dom.kutMilzAiBoost) appState.kutMilzAi.confidenceBoost = Math.max(0, Math.min(100, parseInt(dom.kutMilzAiBoost.value) || 30));
+
+    // Xdigits Signal Tuning (persist editable fields so changes 'stay')
+    try{
+      if (!appState.kutMilzAi) appState.kutMilzAi = {};
+      if (dom.xdigitsTuneMinStability) appState.kutMilzAi.minStability = Math.max(0, Math.min(100, parseFloat(dom.xdigitsTuneMinStability.value) || 85));
+      if (dom.xdigitsTuneBiasMult) appState.kutMilzAi.biasMultiplier = Math.max(0, parseFloat(dom.xdigitsTuneBiasMult.value) || 1.0);
+      if (dom.xdigitsTuneMinMomentum) appState.kutMilzAi.minMomentum = Math.max(0, parseFloat(dom.xdigitsTuneMinMomentum.value) || 0.0005);
+      if (dom.xdigitsTuneCooldown) appState.kutMilzAi.signalCooldownMs = Math.max(0, parseInt(dom.xdigitsTuneCooldown.value) || 30000);
+      if (dom.xdigitsTuneMinOccurrences) appState.kutMilzAi.minOccurrences = Math.max(0, parseInt(dom.xdigitsTuneMinOccurrences.value) || 3);
+      if (dom.xdigitsAlwaysOn) appState.kutMilzAi.alwaysOn = !!dom.xdigitsAlwaysOn.checked;
+    }catch(e){ /* non-fatal */ }
 
     // Scalp Indicator Assist (SCALP only)
     if (!appState.scalpInd) appState.scalpInd = { enabled:false };
@@ -6016,10 +6315,9 @@ function passesPriceActionFilter(direction){
 ========================================================= */
 function updateClustering(price){
   const s = String(price);
-  const lastChar = s.replace(/\D/g,'').slice(-1) || "1";
+  const lastChar = s.replace(/\D/g,'').slice(-1) || "0";
   let d = parseInt(lastChar,10);
-  // Convert 0 to 1 for 1-9 range
-  if (d === 0) d = 1;
+  // keep 0..9 digit range
 
   appState.lastDigits.push(d);
   while(appState.lastDigits.length > 50) appState.lastDigits.shift(); // Keep 50 digits for KutMilzAi analysis
@@ -6053,6 +6351,38 @@ function updateXdigitsDisplay() {
   // Update barrier display
   const barrierEl = document.getElementById("xdigits-barrier-value");
   if (barrierEl) barrierEl.textContent = barrier;
+
+  // Update market price display (if present)
+  try{
+    const marketWrap = document.getElementById('xdigits-market-price-wrap');
+    const priceVal = document.getElementById('xdigits-market-price-val');
+    const confirmedEl = document.getElementById('xdigits-market-price-confirmed');
+    if (priceVal){
+      const sym = appState.symbol || (document.getElementById('xdigits-market-options')?.value) || 'N/A';
+      const p = (typeof appState.lastTick !== 'undefined' && appState.lastTick !== null) ? Number(appState.lastTick) : null;
+      priceVal.textContent = p === null ? `${sym}: --` : `${sym}: ${p.toFixed(5)}`;
+    }
+    if (confirmedEl && appState.kutMilzAi && appState.kutMilzAi.confirmedPrice){
+      const c = appState.kutMilzAi.confirmedPrice;
+      confirmedEl.textContent = `Confirmed: ${c.price.toFixed(5)} @ ${new Date(c.at).toLocaleTimeString()}`;
+    }
+
+    // Auto-confirm behavior: if enabled and market changed (or no confirmed price), set confirmedPrice to current lastTick
+    try{
+      const autoChk = document.getElementById('xdigits-auto-confirm-price');
+      const sym = appState.symbol || (document.getElementById('xdigits-market-options')?.value) || null;
+      const p = (typeof appState.lastTick !== 'undefined' && appState.lastTick !== null) ? Number(appState.lastTick) : null;
+      if (autoChk && autoChk.checked && p !== null){
+        const cur = appState.kutMilzAi && appState.kutMilzAi.confirmedPrice ? appState.kutMilzAi.confirmedPrice : null;
+        if (!cur || cur.symbol !== sym){
+          if (!appState.kutMilzAi) appState.kutMilzAi = {};
+          appState.kutMilzAi.confirmedPrice = { price: p, at: Date.now(), symbol: sym };
+          if (confirmedEl) confirmedEl.textContent = `Confirmed: ${p.toFixed(5)} @ ${new Date().toLocaleTimeString()}`;
+          logLine('Auto-confirmed market price: ' + (sym || '') + ' ' + p);
+        }
+      }
+    }catch(_){ }
+  }catch(_){ }
   
   // Check if bot is running - if not, show message
   if (!appState.isBotRunning) {
@@ -6090,6 +6420,15 @@ function updateXdigitsDisplay() {
   const putBtn = document.getElementById("xdigits-put-btn");
   if (callBtn) callBtn.textContent = `📈 CALL (Higher than ${barrier})`;
   if (putBtn) putBtn.textContent = `📉 PUT (Lower than ${barrier})`;
+
+  // Show/hide market options when Xdigits logic is active
+  try{
+    const marketWrap = document.getElementById('xdigits-market-options-wrap');
+    if (marketWrap){ marketWrap.style.display = (appState.kutMilzAi && appState.kutMilzAi.enabled) ? 'block' : 'none'; }
+  }catch(_){ }
+
+  // Update bias UI immediately
+  try{ computeAndUpdateBias(); }catch(_){ }
   
   // Calculate overall statistics for predictions
   // Overall stats using available digits (use up to `lookback` most recent ticks)
@@ -6099,7 +6438,7 @@ function updateXdigitsDisplay() {
   const belowBarrier = recentSlice.filter(d => d <= barrier).length;
 
   // For each digit 1-9, show KutMilzAi prediction (ABOVE or UNDER barrier)
-  for (let digit = 1; digit <= 9; digit++) {
+  for (let digit = 0; digit <= 9; digit++) {
     const predEl = document.getElementById(`xdigit-${digit}-pred`);
     const btnEl = document.getElementById(`xdigit-${digit}`);
     
@@ -6275,7 +6614,7 @@ window.exportKutMilzJson = function(){
     const startIdx = Math.max(0, digitsArr.length - lookback - 1);
 
     const digits = {};
-    for(let d=1; d<=9; d++){
+    for(let d=0; d<=9; d++){
       let occ = 0, nextAbove = 0;
       for(let i=startIdx; i<digitsArr.length-1; i++){
         if (digitsArr[i] === d){ occ++; if (digitsArr[i+1] > barrier) nextAbove++; }
@@ -6325,7 +6664,7 @@ window.exportKutMilzJsonBoth = function(){
 
     function buildDigits(startIdx){
       const out = {};
-      for(let d=1; d<=9; d++){
+      for(let d=0; d<=9; d++){
         let occ = 0, nextAbove = 0;
         for(let i=startIdx; i<digitsArr.length-1; i++){
           if (digitsArr[i] === d){ occ++; if (digitsArr[i+1] > barrier) nextAbove++; }
@@ -6370,6 +6709,399 @@ window.exportKutMilzJsonBoth = function(){
     logLine('Export both failed: ' + (e && e.message));
   }
 };
+
+/**
+ * Xdigits Average Bias calculation and UI
+ */
+window.kutMilzAiThresholds = {
+  BOOM500N: 0.30, BOOM1000: 0.32,
+  CRASH500N: 0.34, CRASH1000: 0.36,
+  JD10: 0.45, JD25: 0.48, JD75: 0.50, JD100: 0.52,
+  R_10: 0.35, R_25: 0.37, R_75: 0.39, R_100: 0.41,
+  R_10S: 0.42, R_100S: 0.44, R_25S: 0.50, R_75S: 0.52
+};
+
+function getMarketThreshold(symbol){
+  if (!symbol) return 0.35;
+  return window.kutMilzAiThresholds[symbol] ?? 0.35;
+}
+
+function getDigitCallPct(digit, lookback, barrier){
+  const digitsArr = appState.lastDigits || [];
+  const startIdx = Math.max(0, digitsArr.length - lookback - 1);
+  let occ = 0, nextAbove = 0;
+  for(let i = startIdx; i < digitsArr.length - 1; i++){
+    if (digitsArr[i] === digit){ occ++; if (digitsArr[i+1] > barrier) nextAbove++; }
+  }
+  const callPct = occ ? (nextAbove / occ) * 100 : 0;
+  return { callPct, putPct: 100 - callPct, occurrences: occ };
+}
+
+function computeAndUpdateBias(){
+  try{
+    if (!appState.kutMilzAi) appState.kutMilzAi = { lookback:33, barrier:5, confidenceBoost:30, priceInfluence:20, autoConfirmPrice: true };
+    const cfg = appState.kutMilzAi;
+    const lookback = Math.max(10, Math.min(500, Number(cfg.lookback || 33)));
+    const barrier = Number(cfg.barrier || 5);
+    const boost = Math.max(0, Number(cfg.confidenceBoost ?? 30));
+
+    // Determine digits to watch
+    const sel = document.getElementById('xdigits-digits-watch');
+    let digitsToWatch = [];
+    // honor 'watchMatchesBarrier' flag if user requested
+    const watchMatchesBarrier = !!(appState.kutMilzAi && appState.kutMilzAi.watchMatchesBarrier);
+    if (sel && sel.value !== 'auto'){
+      const n = Math.max(1, Math.min(10, Number(sel.value)));
+      // choose top-n digits by occurrences in lookback
+      const counts = [];
+      for(let d=0; d<=9; d++){ const s = getDigitCallPct(d, lookback, barrier); counts.push({d,occ:s.occurrences}); }
+      counts.sort((a,b)=>b.occ - a.occ);
+      digitsToWatch = counts.slice(0,n).map(x=>x.d);
+    } else {
+      // Auto: sync with Barrier logic -> watch digits greater than barrier (CALL-prone) and lower ones
+      // We'll pick nearest 5 digits centered on barrier when possible
+      const n = Math.min(10, Math.max(1, Math.round( (Number(sel && sel.value==='auto')? Math.max(3, Math.ceil( (cfg.barrier||5)/1 )):5) )));
+      // simple auto: include all digits 0..9 when n==10 otherwise pick around barrier
+      if (n >= 10) digitsToWatch = Array.from({length:10},(_,i)=>i);
+      else {
+        const b = barrier;
+        const arr = [];
+        for(let offset = 0; arr.length < n && (b - offset >=0 || b + offset <=9); offset++){
+          if (b - offset >= 0) arr.push(b - offset);
+          if (arr.length < n && b + offset <= 9) arr.push(b + offset);
+        }
+        digitsToWatch = arr.slice(0,n);
+      }
+    }
+
+    // If user set watch-to-barrier, override digitsToWatch to exactly the barrier digit
+    if (watchMatchesBarrier){ digitsToWatch = [barrier]; }
+
+    // Compute TickAverageBias for current tick
+    let sumBias = 0;
+    for(const d of digitsToWatch){
+      const s = getDigitCallPct(d, lookback, barrier);
+      const callPct = s.callPct;
+      const putPct = s.putPct;
+      let biasDir = 0; let conf = 0;
+      if (callPct > putPct){ biasDir = 1; conf = callPct; }
+      else if (putPct > callPct){ biasDir = -1; conf = putPct; }
+      else { biasDir = 0; conf = 50; }
+      const digitBias = biasDir * (conf / 100);
+      sumBias += digitBias;
+    }
+    const tickAverageBias = digitsToWatch.length ? (sumBias / digitsToWatch.length) : 0;
+
+    // Maintain bias history
+    if (!appState.kutMilzAi.biasHistory) appState.kutMilzAi.biasHistory = [];
+    appState.kutMilzAi.biasHistory.push(tickAverageBias);
+    while(appState.kutMilzAi.biasHistory.length > lookback) appState.kutMilzAi.biasHistory.shift();
+
+    // FinalAverageBias is mean over biasHistory
+    const sumHist = appState.kutMilzAi.biasHistory.reduce((a,b)=>a+b,0);
+    const finalAverageBias = (appState.kutMilzAi.biasHistory.length ? (sumHist / appState.kutMilzAi.biasHistory.length) : 0);
+    // Price influence: nudge bias using short-term price momentum (based on tickBuffer)
+    const priceInfluenceInput = document.getElementById('xdigits-price-influence');
+    const priceInfluence = Number(appState.kutMilzAi?.priceInfluence ?? (priceInfluenceInput ? Number(priceInfluenceInput.value) : 20));
+    let priceMomentum = 0;
+    try{
+      const buf = Array.isArray(appState.tickBuffer) ? appState.tickBuffer.slice(-Math.max(3, Math.min(30, appState.tickBuffer.length))) : [];
+      if (buf.length >= 2){
+        const sum = buf.reduce((a,b)=>a+b,0);
+        const avg = sum / buf.length;
+        const last = buf[buf.length-1];
+        if (avg && Number.isFinite(avg)) priceMomentum = (last - avg) / avg; // relative change
+        if (priceMomentum > 1) priceMomentum = 1;
+        if (priceMomentum < -1) priceMomentum = -1;
+      }
+    }catch(_){ priceMomentum = 0; }
+
+    // Map price influence percent to a [-1..1] scale factor contribution
+    const biasFromPrice = priceMomentum * (Math.max(0, Math.min(100, Number(priceInfluence))) / 100);
+
+    // Stability: proportion of ticks sharing last direction
+    const hist = appState.kutMilzAi.biasHistory.slice();
+    const lastSign = hist.length ? Math.sign(hist[hist.length-1]) : 0;
+    const same = hist.filter(v => Math.sign(v) === lastSign && lastSign !== 0).length;
+    const stabilityPct = hist.length ? Math.round((same / hist.length) * 100) : 0;
+
+    // Adaptive Confidence Boost: scale boost by stability (reduce amplification when unstable)
+    const effectiveBoost = boost * (stabilityPct / 100);
+
+    let adjustedAverageBias = finalAverageBias * (1 + (effectiveBoost/100));
+    // apply price-derived bias nudging
+    adjustedAverageBias = adjustedAverageBias + (biasFromPrice || 0);
+
+    // Update UI
+    const avgEl = document.getElementById('xdigits-avg-bias');
+    const barEl = document.getElementById('xdigits-bias-bar');
+    const stabEl = document.getElementById('xdigits-bias-stability');
+    const activeThresholdEl = document.getElementById('xdigits-active-threshold');
+
+    // Determine active market symbol from market selector or fallback to appState.symbol
+    const marketSel = document.getElementById('xdigits-market-options');
+    const activeSymbol = (marketSel && marketSel.value) ? marketSel.value : (appState.symbol || null);
+    const threshold = getMarketThreshold(activeSymbol);
+
+    
+    if (avgEl) avgEl.textContent = adjustedAverageBias.toFixed(3);
+    // Update header display if present
+    const headerVal = document.getElementById('xdigits-avg-bias-header-val');
+    if (headerVal) {
+      headerVal.textContent = adjustedAverageBias.toFixed(3);
+      // color rules: green >= threshold, red <= -threshold, grey otherwise
+      if (adjustedAverageBias >= threshold) headerVal.style.color = '#86efac';
+      else if (adjustedAverageBias <= -threshold) headerVal.style.color = '#fca5a5';
+      else headerVal.style.color = '#94a3b8';
+    }
+    if (stabEl) stabEl.textContent = stabilityPct + "%";
+    if (activeThresholdEl) activeThresholdEl.textContent = `Active Bias Threshold: ±${threshold.toFixed(2)}`;
+
+    // Update mini header bias/stability elements if present
+    try{
+      const miniAvg = document.getElementById('xdigits-avg-bias-mini');
+      const miniZero = document.getElementById('xdigits-avg-bias-mini-zero');
+      const miniStab = document.getElementById('xdigits-bias-stability-mini');
+      const signalEl = document.getElementById('xdigits-avg-bias-signal');
+      const manualChk = document.getElementById('xdigits-manual-signal');
+      const manualSel = document.getElementById('xdigits-manual-signal-select');
+      if (miniAvg) {
+        miniAvg.textContent = adjustedAverageBias.toFixed(3);
+        if (adjustedAverageBias >= threshold) miniAvg.style.color = '#86efac';
+        else if (adjustedAverageBias <= -threshold) miniAvg.style.color = '#fca5a5';
+        else miniAvg.style.color = '#cbd5e1';
+      }
+      if (miniZero) miniZero.textContent = '0';
+      if (miniStab) miniStab.textContent = stabilityPct + '%';
+
+      // Determine actionable signal using gated/confidence logic
+      let signal = 'WAIT';
+      // If manual override enabled, use manual selection
+      const manualEnabled = manualChk && manualChk.checked;
+      const manualChoice = manualSel ? manualSel.value : 'AUTO';
+      if (manualEnabled && manualChoice && manualChoice !== 'AUTO'){
+        signal = (manualChoice === 'CALL') ? 'CALL NOW' : (manualChoice === 'PUT' ? 'PUT NOW' : 'WAIT');
+      } else {
+        // Load tuning parameters (fall back to defaults)
+        let minStability = Number(cfg.minStability ?? appState.kutMilzAi?.minStability ?? 85);
+        let biasMultiplier = Number(cfg.biasMultiplier ?? appState.kutMilzAi?.biasMultiplier ?? 1.0);
+        let minMomentum = Number(cfg.minMomentum ?? appState.kutMilzAi?.minMomentum ?? 0.0005);
+        const signalCooldownMs = Number(cfg.signalCooldownMs ?? appState.kutMilzAi?.signalCooldownMs ?? 30000);
+        let minOccurrences = Number(cfg.minOccurrences ?? appState.kutMilzAi?.minOccurrences ?? 3);
+
+        // Relax gating override (quick manual/testing toggle)
+        try{
+          const relaxEl = document.getElementById('xdigits-relax-gating');
+          const relaxActive = relaxEl && relaxEl.checked;
+          if (relaxActive){
+            // lower thresholds to make signals easier to hit during manual testing
+            minStability = Math.min(minStability, 60);
+            minOccurrences = Math.max(1, Math.min(minOccurrences, 1));
+            minMomentum = Math.min(minMomentum, 0.0001);
+            biasMultiplier = biasMultiplier * 0.6;
+          }
+        }catch(e){}
+
+        // Count occurrences across digitsToWatch
+        let occurrences = 0;
+        for (const d of digitsToWatch){ try{ const s = getDigitCallPct(d, lookback, barrier); occurrences += (s.occurrences || 0);}catch(_){ } }
+
+        // Bias-based gating
+        const requiredBias = Math.abs(threshold) * biasMultiplier;
+        const biasForDecision = adjustedAverageBias * biasMultiplier;
+        const absBias = Math.abs(biasForDecision);
+
+        const now = Date.now();
+        const lastSignalAt = appState.kutMilzAi._lastSignalAt || 0;
+        const cooldownPassed = (now - lastSignalAt) >= signalCooldownMs;
+
+        // Confidence estimate [0..100]
+        let confidence = Math.min(100, Math.abs(adjustedAverageBias) * 100 * (stabilityPct/100) * (biasMultiplier));
+
+        // If user opted to always-on (force signals) or a one-shot force was requested, bypass gating
+        const alwaysOn = !!(appState.kutMilzAi && appState.kutMilzAi.alwaysOn);
+        const forceOnceFlag = !!(appState.kutMilzAi && appState.kutMilzAi._forceOnce);
+        if (alwaysOn || forceOnceFlag){
+          signal = adjustedAverageBias > 0 ? 'CALL NOW' : 'PUT NOW';
+          appState.kutMilzAi._lastSignalAt = now;
+          appState.kutMilzAi._lastSignal = signal;
+          if (forceOnceFlag){
+            appState.kutMilzAi._lastForceAt = now;
+            try{ delete appState.kutMilzAi._forceOnce; }catch(e){}
+          }
+        } else {
+          // Final gating conditions: stability, magnitude, momentum, occurrences, cooldown
+          if (stabilityPct >= minStability && absBias >= requiredBias && Math.abs(priceMomentum) >= minMomentum && occurrences >= minOccurrences && cooldownPassed){
+            signal = adjustedAverageBias > 0 ? 'CALL NOW' : 'PUT NOW';
+            appState.kutMilzAi._lastSignalAt = now;
+            appState.kutMilzAi._lastSignal = signal;
+          } else {
+            signal = 'WAIT';
+          }
+        }
+
+        // expose tuning diagnostics
+        appState.kutMilzAi._lastComputed = Object.assign({}, appState.kutMilzAi._lastComputed, { alwaysOn, confidence, occurrences, requiredBias, cooldownPassed, minStability, biasMultiplier, minMomentum });
+      }
+      if (signalEl){
+        signalEl.textContent = signal;
+        if (signal === 'CALL NOW'){
+          signalEl.style.color = '#164E12';
+          signalEl.style.background = 'rgba(16,185,129,0.08)';
+          signalEl.style.padding = '4px 8px';
+          signalEl.style.borderRadius = '6px';
+        } else if (signal === 'PUT NOW'){
+          signalEl.style.color = '#7f1d1d';
+          signalEl.style.background = 'rgba(244,63,94,0.06)';
+          signalEl.style.padding = '4px 8px';
+          signalEl.style.borderRadius = '6px';
+        } else {
+          signalEl.style.color = '#94a3b8';
+          signalEl.style.background = '';
+          signalEl.style.padding = '';
+        }
+      }
+      // Expose signal in last computed values
+      appState.kutMilzAi._lastComputed = Object.assign({}, appState.kutMilzAi._lastComputed, { signal });
+    }catch(_){ }
+
+    if (barEl){
+      // map adjustedAverageBias (-1..1 approx) to width percent relative to threshold
+      const max = Math.max(0.01, threshold);
+      const pct = Math.max(-1, Math.min(1, adjustedAverageBias / (max*2))) ;
+      // We will set width from center: for positive bias, width to right; negative to left
+      const clamped = Math.max(-1, Math.min(1, adjustedAverageBias));
+      const leftPct = clamped < 0 ? (50 - (Math.abs(clamped) * 50)) : 50;
+      const widthPct = Math.abs(clamped) * 100 / 2; // scaled
+      barEl.style.left = (clamped < 0 ? (50 - widthPct) + '%' : '50%');
+      barEl.style.width = widthPct + '%';
+      // color pick
+      barEl.style.background = adjustedAverageBias >= 0 ? 'linear-gradient(90deg,#16a34a,#86efac)' : 'linear-gradient(90deg,#dc2626,#fda4af)';
+    }
+
+    // Save last computed values (include price momentum and price-derived bias)
+    appState.kutMilzAi._lastComputed = Object.assign({}, appState.kutMilzAi._lastComputed || {}, { adjustedAverageBias, finalAverageBias, stabilityPct, threshold, digitsToWatch, activeSymbol, priceMomentum, biasFromPrice, signal: (typeof signal !== 'undefined') ? signal : ((appState.kutMilzAi._lastComputed && appState.kutMilzAi._lastComputed.signal) || null) });
+    
+    return appState.kutMilzAi._lastComputed;
+  }catch(e){ console.error(e); return null; }
+}
+
+// Run periodic bias updater every 1s
+if (!window._kutMilzBiasTicker){
+  window._kutMilzBiasTicker = setInterval(()=>{ try{ computeAndUpdateBias(); }catch(e){} }, 1000);
+}
+
+// Helper to set digits-to-watch to barrier digit
+window.setXdigitsWatchToBarrier = function(){
+  try{
+    if (!appState.kutMilzAi) appState.kutMilzAi = {};
+    appState.kutMilzAi.watchMatchesBarrier = true;
+    const sel = document.getElementById('xdigits-digits-watch');
+    if (sel) sel.value = '1';
+    logLine('Digits-to-watch forced to Barrier.');
+    computeAndUpdateBias();
+  }catch(e){ console.error(e); }
+};
+
+// Helper to clear watch-to-barrier override
+window.clearXdigitsWatchToBarrier = function(){
+  try{
+    if (appState.kutMilzAi) delete appState.kutMilzAi.watchMatchesBarrier;
+    logLine('Digits-to-watch Barrier override cleared.');
+    computeAndUpdateBias();
+  }catch(e){ console.error(e); }
+};
+
+// Attach simple handlers for manual signal UI (if present)
+try{
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const chk = document.getElementById('xdigits-manual-signal');
+    const sel = document.getElementById('xdigits-manual-signal-select');
+    const watchBtn = document.getElementById('xdigits-set-watch-barrier');
+    if (watchBtn) watchBtn.addEventListener('click', ()=>{ window.setXdigitsWatchToBarrier(); });
+    if (chk) chk.addEventListener('change', ()=>{ try{ if (!appState.kutMilzAi) appState.kutMilzAi = {}; appState.kutMilzAi.manualSignalEnabled = !!chk.checked; computeAndUpdateBias(); }catch(e){} });
+    if (sel) sel.addEventListener('change', ()=>{ try{ if (!appState.kutMilzAi) appState.kutMilzAi = {}; appState.kutMilzAi.manualSignalChoice = sel.value || 'AUTO'; computeAndUpdateBias(); }catch(e){} });
+    // Confirm price button
+    const confirmBtn = document.getElementById('xdigits-confirm-price-btn');
+    const autoBtn = document.getElementById('xdigits-auto-confirm-btn');
+    if (confirmBtn) confirmBtn.addEventListener('click', ()=>{
+      try{
+        const p = (typeof appState.lastTick !== 'undefined' && appState.lastTick !== null) ? Number(appState.lastTick) : null;
+        if (!p) { logLine('No price available to confirm'); return; }
+        if (!appState.kutMilzAi) appState.kutMilzAi = {};
+        appState.kutMilzAi.confirmedPrice = { price: p, at: Date.now(), symbol: appState.symbol || document.getElementById('xdigits-market-options')?.value || null };
+        const confirmedEl = document.getElementById('xdigits-market-price-confirmed');
+        if (confirmedEl) confirmedEl.textContent = `Confirmed: ${p.toFixed(5)} @ ${new Date().toLocaleTimeString()}`;
+        logLine('Market price confirmed: ' + (appState.kutMilzAi.confirmedPrice.symbol || '') + ' ' + p);
+      }catch(e){ console.error(e); }
+    });
+    if (autoBtn){
+      autoBtn.addEventListener('click', ()=>{
+        try{
+          if (!appState.kutMilzAi) appState.kutMilzAi = {};
+          appState.kutMilzAi.autoConfirmPrice = !appState.kutMilzAi.autoConfirmPrice;
+          const cb = document.getElementById('xdigits-auto-confirm-price'); if (cb) cb.checked = !!appState.kutMilzAi.autoConfirmPrice;
+          updateUI && updateUI();
+          logLine('Auto-confirm toggled: ' + appState.kutMilzAi.autoConfirmPrice);
+        }catch(e){ console.error(e); }
+      });
+    }
+  });
+}catch(e){ console.error(e); }
+
+// Modal wiring for Always ON confirmation + toast helpers
+try{
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const confirm = document.getElementById('xdigits-alwayson-confirm');
+    const cancel = document.getElementById('xdigits-alwayson-cancel');
+    const modal = document.getElementById('xdigits-alwayson-modal');
+    if (confirm){
+      confirm.addEventListener('click', ()=>{
+        try{
+          if (!appState.kutMilzAi) appState.kutMilzAi = {};
+          appState.kutMilzAi.alwaysOn = true;
+          const chk = document.getElementById('xdigits-always-on'); if (chk) chk.checked = true;
+          updateStateFromUI && updateStateFromUI(); window.persistKutMilzState();
+          if (modal) modal.style.display = 'none';
+          showToast && showToast('Always ON enabled');
+        }catch(e){ console.error(e); }
+      });
+    }
+    if (cancel){
+      cancel.addEventListener('click', ()=>{
+        try{ if (modal) modal.style.display = 'none'; const chk = document.getElementById('xdigits-always-on'); if (chk) chk.checked = false; showToast && showToast('Always ON cancelled'); }catch(e){}
+      });
+    }
+    // Autosave modal wiring
+    const asConfirm = document.getElementById('xdigits-autosave-confirm');
+    const asCancel = document.getElementById('xdigits-autosave-cancel');
+    const asModal = document.getElementById('xdigits-autosave-modal');
+    if (asConfirm){ asConfirm.addEventListener('click', ()=>{ try{ const cb = document.getElementById('xdigits-autosave-toggle'); if (cb){ cb.checked = true; window.startKutMilzAuto && window.startKutMilzAuto(); } if (asModal) asModal.style.display='none'; showToast && showToast('Auto Save enabled'); window.persistKutMilzState(); }catch(e){} }); }
+    if (asCancel){ asCancel.addEventListener('click', ()=>{ try{ if (asModal) asModal.style.display='none'; const cb = document.getElementById('xdigits-autosave-toggle'); if (cb) cb.checked = false; showToast && showToast('Auto Save cancelled'); }catch(e){} }); }
+
+    // Store Everything modal wiring
+    const stConfirm = document.getElementById('xdigits-store-confirm');
+    const stCancel = document.getElementById('xdigits-store-cancel');
+    const stModal = document.getElementById('xdigits-store-modal');
+    if (stConfirm){ stConfirm.addEventListener('click', ()=>{ try{ const el = document.getElementById('xdigits-store-everything'); if (el) el.checked = true; if (stModal) stModal.style.display='none'; showToast && showToast('Store Everything enabled'); window.persistKutMilzState(); }catch(e){} }); }
+    if (stCancel){ stCancel.addEventListener('click', ()=>{ try{ if (stModal) stModal.style.display='none'; const el = document.getElementById('xdigits-store-everything'); if (el) el.checked = false; showToast && showToast('Store Everything cancelled'); }catch(e){} }); }
+
+    // Allow Local Storage modal wiring
+    const alConfirm = document.getElementById('xdigits-allowls-confirm');
+    const alCancel = document.getElementById('xdigits-allowls-cancel');
+    const alModal = document.getElementById('xdigits-allowls-modal');
+    if (alConfirm){ alConfirm.addEventListener('click', ()=>{ try{ const el = document.getElementById('xdigits-allow-localstorage'); if (el) el.checked = true; window.ALLOW_LOCAL_STORAGE = true; if (alModal) alModal.style.display='none'; showToast && showToast('Local Storage allowed'); window.persistKutMilzState(); }catch(e){} }); }
+    if (alCancel){ alCancel.addEventListener('click', ()=>{ try{ if (alModal) alModal.style.display='none'; const el = document.getElementById('xdigits-allow-localstorage'); if (el) el.checked = false; window.ALLOW_LOCAL_STORAGE = false; showToast && showToast('Local Storage cancelled'); }catch(e){} }); }
+
+    // Relax gating modal wiring
+    const rxConfirm = document.getElementById('xdigits-relax-confirm');
+    const rxCancel = document.getElementById('xdigits-relax-cancel');
+    const rxModal = document.getElementById('xdigits-relax-modal');
+    if (rxConfirm){ rxConfirm.addEventListener('click', ()=>{ try{ const el = document.getElementById('xdigits-relax-gating'); if (el) el.checked = true; if (rxModal) rxModal.style.display='none'; updateStateFromUI && updateStateFromUI(); window.persistKutMilzState(); showToast && showToast('Relax Gating enabled'); }catch(e){} }); }
+    if (rxCancel){ rxCancel.addEventListener('click', ()=>{ try{ if (rxModal) rxModal.style.display='none'; const el = document.getElementById('xdigits-relax-gating'); if (el) el.checked = false; showToast && showToast('Relax Gating cancelled'); }catch(e){} }); }
+  });
+}catch(e){}
+
 
 // Persistence: save/load trimmed parts of appState to localStorage
 window.persistKutMilzState = function(storeEverything){
@@ -6421,17 +7153,39 @@ window.loadKutMilzState = function(){
     // support both trimmed snapshots and full appState saves
     if (snap.appState){
       try{
-        const preserved = { ws: appState.ws, token: appState.token, isBotRunning: appState.isBotRunning };
-        // merge saved appState into current appState (avoid replacing functions/DOM refs)
-        Object.keys(snap.appState).forEach(k => { appState[k] = snap.appState[k]; });
-        // restore preserved runtime fields
+        // Preserve runtime fields and important local data (do NOT overwrite accu/history/learning)
+        const preserved = {
+          ws: appState.ws,
+          token: appState.token,
+          isBotRunning: appState.isBotRunning,
+          accu: appState.accu,
+          history: appState.history,
+          learning: appState.learning
+        };
+
+        // Merge saved appState but skip sensitive or large keys and do NOT clobber accu/history
+        const skipKeys = new Set(['ws','token','userRequestedDisconnect','pendingProposalId','accu','history','learning']);
+        Object.keys(snap.appState).forEach(k => {
+          if (skipKeys.has(k)) return;
+          appState[k] = snap.appState[k];
+        });
+
+        // Explicitly merge kutMilzAi and lastDigits only (safe for digits mode)
+        if (snap.appState.kutMilzAi) appState.kutMilzAi = Object.assign({}, appState.kutMilzAi || {}, snap.appState.kutMilzAi);
+        if (snap.appState.lastDigits) appState.lastDigits = snap.appState.lastDigits;
+
+        // Restore preserved runtime/local fields
         appState.ws = preserved.ws;
         appState.token = preserved.token;
         appState.isBotRunning = preserved.isBotRunning;
+        appState.accu = preserved.accu || appState.accu;
+        appState.history = preserved.history || appState.history;
+        appState.learning = preserved.learning || appState.learning;
       }catch(e){ logLine('Partial restore failed: ' + e.message); }
     } else {
+      // Trimmed snapshot: merge rather than overwrite to avoid wiping accu/history
       if (snap.lastDigits) appState.lastDigits = snap.lastDigits;
-      if (snap.accu) appState.accu = snap.accu;
+      if (snap.accu) appState.accu = Object.assign({}, appState.accu || {}, snap.accu);
       if (snap.kutMilzAi) appState.kutMilzAi = Object.assign({}, appState.kutMilzAi || {}, snap.kutMilzAi);
       if (snap.session){
         appState.sessionProfit = snap.session.sessionProfit || appState.sessionProfit;
@@ -6458,6 +7212,9 @@ window.clearKutMilzState = function(){
     autoTimer = setInterval(()=>{ try{ window.persistKutMilzState(); }catch(e){} }, 5000);
   }
   function stopAuto(){ if (autoTimer){ clearInterval(autoTimer); autoTimer = null; } }
+  // Expose start/stop for modal-confirm flows
+  window.startKutMilzAuto = startAuto;
+  window.stopKutMilzAuto = stopAuto;
 
   // Wire UI if present
   document.addEventListener('DOMContentLoaded', function(){
@@ -6465,18 +7222,94 @@ window.clearKutMilzState = function(){
     const saveBtn = $('xdigits-save-btn');
     const loadBtn = $('xdigits-load-btn');
     const clearBtn = $('xdigits-clear-memory-btn');
+    const loadDigitsBtn = $('xdigits-load-digits-btn');
     const storeEverything = $('xdigits-store-everything');
     const allowLS = $('xdigits-allow-localstorage');
+    const relaxEl = $('xdigits-relax-gating');
+    // Allow Local Storage: require confirmation before enabling
     if (allowLS){
       window.ALLOW_LOCAL_STORAGE = !!allowLS.checked;
-      allowLS.addEventListener('change', function(){ window.ALLOW_LOCAL_STORAGE = !!allowLS.checked; logLine('Allow localStorage: ' + window.ALLOW_LOCAL_STORAGE); });
+      allowLS.addEventListener('change', function(){
+        try{
+          if (allowLS.checked){
+            const m = document.getElementById('xdigits-allowls-modal'); if (m) m.style.display = 'flex';
+            allowLS.checked = false;
+          } else {
+            window.ALLOW_LOCAL_STORAGE = false;
+            logLine('Allow localStorage: ' + window.ALLOW_LOCAL_STORAGE);
+          }
+        }catch(e){}
+      });
     }
+    // Protected Defaults checkbox (local to Xdigits panel)
+    const pd = $('xdigits-protected-defaults');
+    if (pd){
+      pd.checked = !!appState.isProtectedDefaults;
+      pd.addEventListener('change', function(){
+        appState.isProtectedDefaults = !!pd.checked;
+        logLine('Protected Defaults toggled: ' + appState.isProtectedDefaults);
+        updateUI && updateUI();
+      });
+    }
+    // Auto Save: require confirmation before enabling
     if (cb){
-      cb.addEventListener('change', function(){ if (cb.checked) startAuto(); else stopAuto(); });
+      cb.addEventListener('change', function(){
+        try{
+          if (cb.checked){
+            const m = document.getElementById('xdigits-autosave-modal'); if (m) m.style.display = 'flex';
+            cb.checked = false;
+          } else {
+            if (window.stopKutMilzAuto) window.stopKutMilzAuto();
+          }
+        }catch(e){}
+      });
     }
+    // Store Everything: require confirmation before enabling
+    if (storeEverything){
+      storeEverything.addEventListener('change', function(){
+        try{
+          if (storeEverything.checked){
+            const m = document.getElementById('xdigits-store-modal'); if (m) m.style.display = 'flex';
+            storeEverything.checked = false;
+          }
+        }catch(e){}
+      });
+    }
+    // Relax gating: require confirmation before enabling
+    if (relaxEl){
+      relaxEl.addEventListener('change', function(){
+        try{
+          if (relaxEl.checked){
+            const m = document.getElementById('xdigits-relax-modal'); if (m) m.style.display = 'flex';
+            relaxEl.checked = false;
+          } else {
+            updateStateFromUI && updateStateFromUI(); window.persistKutMilzState();
+          }
+        }catch(e){}
+      });
+    }
+    
     if (saveBtn) saveBtn.addEventListener('click', function(){ window.persistKutMilzState(!!(storeEverything && storeEverything.checked)); });
     if (loadBtn) loadBtn.addEventListener('click', function(){ window.loadKutMilzState(); });
     if (clearBtn) clearBtn.addEventListener('click', function(){ window.clearKutMilzState(); updateUI && updateUI(); });
+    if (loadDigitsBtn) loadDigitsBtn.addEventListener('click', function(){
+      try{
+        const raw = localStorage.getItem('kutmilz_state');
+        if (!raw) { logLine('No saved KutMilz state found for digits'); return; }
+        const snap = JSON.parse(raw);
+        // support both full appState saves and trimmed snapshots
+        if (snap.appState){
+          const src = snap.appState;
+          if (src.lastDigits) appState.lastDigits = src.lastDigits;
+          if (src.kutMilzAi) appState.kutMilzAi = Object.assign({}, appState.kutMilzAi || {}, src.kutMilzAi);
+        } else {
+          if (snap.lastDigits) appState.lastDigits = snap.lastDigits;
+          if (snap.kutMilzAi) appState.kutMilzAi = Object.assign({}, appState.kutMilzAi || {}, snap.kutMilzAi);
+        }
+        updateUI && updateUI();
+        logLine('Loaded digits + tuning from saved state (digits only)');
+      }catch(e){ logLine('Load digits failed: ' + e.message); }
+    });
     if (cb && storeEverything){
       // when auto-save enabled, obey storeEverything choice for auto saves
       cb.addEventListener('change', function(){ if (cb.checked) startAuto(); else stopAuto(); });
@@ -6501,6 +7334,51 @@ window.clearKutMilzState = function(){
         }
       }
     }catch(e){}
+
+    // Persist tuning inputs as user edits so values remain when trading in digits mode
+    try{
+      const tuneIds = ['xdigits-tune-min-stability','xdigits-tune-bias-mult','xdigits-tune-min-momentum','xdigits-tune-cooldown','xdigits-tune-min-occurrences'];
+      tuneIds.forEach(id => {
+        const el = $(id);
+        if (!el) return;
+        el.addEventListener('input', function(){ try{ updateStateFromUI(); window.persistKutMilzState(); }catch(_){} });
+        el.addEventListener('change', function(){ try{ updateStateFromUI(); window.persistKutMilzState(); }catch(_){} });
+      });
+      // Intercept Always ON to require confirmation before enabling
+      const alwaysEl = $('xdigits-always-on');
+      if (alwaysEl){
+        alwaysEl.addEventListener('change', function(){ try{
+          const checked = !!alwaysEl.checked;
+          if (checked){
+            // show confirmation modal
+            const m = document.getElementById('xdigits-alwayson-modal');
+            if (m) m.style.display = 'flex';
+          } else {
+            // disabling applies immediately
+            updateStateFromUI(); window.persistKutMilzState();
+          }
+        }catch(_){} });
+      }
+
+      // Force Once button: attempt a one-shot forced signal (respects cooldown)
+      const forceBtn = $('xdigits-force-once-btn');
+      if (forceBtn){
+        forceBtn.addEventListener('click', function(){ try{
+          if (!appState.kutMilzAi) appState.kutMilzAi = {};
+          const cfg = appState.kutMilzAi;
+          const now = Date.now();
+          const lastSignalAt = cfg._lastSignalAt || 0;
+          const signalCooldownMs = Number(cfg.signalCooldownMs ?? cfg.signalCooldownMs ?? 30000);
+          const remaining = signalCooldownMs - (now - lastSignalAt);
+          if (remaining > 0){ showToast && showToast('Force blocked: cooldown ' + Math.ceil(remaining/1000) + 's'); return; }
+          cfg._forceOnce = true;
+          computeAndUpdateBias();
+          showToast && showToast('Force issued');
+          window.persistKutMilzState();
+        }catch(e){ console.error(e); } });
+      }
+    }catch(e){}
+
   });
 })();
 
@@ -6597,7 +7475,7 @@ function analyzeKutMilzAi(){
   // Strategy 3: TradePlus X (Matches/Differs)
   function analyzeTradePlusX() {
     const frequency = {};
-    for (let d = 1; d <= 9; d++) {
+    for (let d = 0; d <= 9; d++) {
       frequency[d] = digits.filter(digit => digit === d).length;
     }
 
@@ -6605,7 +7483,7 @@ function analyzeKutMilzAi(){
     let minFreq = Infinity;
     let coldDigit = null;
 
-    for (let d = 1; d <= 9; d++) {
+    for (let d = 0; d <= 9; d++) {
       if (frequency[d] < minFreq) {
         minFreq = frequency[d];
         coldDigit = d;
@@ -6877,6 +7755,17 @@ function startBot(){
   appState.isBotRunning = true;
   logLine("Bot started - trading active.");
   updateUI();
+  // If Xdigits (KutMilzAi) is active and user selected a market in MARKET OPTIONS,
+  // apply that market selection automatically when the bot starts.
+  try{
+    if (appState.kutMilzAi && appState.kutMilzAi.enabled){
+      const marketSel = document.getElementById('xdigits-market-options');
+      if (marketSel && marketSel.value){
+        setSymbol(marketSel.value);
+        logLine(`Xdigits market auto-selected: ${marketSel.value}`);
+      }
+    }
+  }catch(_){ }
   // If API is already connected/authenticated, start subscribing to ticks now
   if (appState.isApiConnected && appState.isAuthenticated){
     try{ subscribeTicks(appState.symbol); }catch(_){ }
@@ -7076,6 +7965,21 @@ function handleResponse(res){
       }
 
       appState.lastTick = price;
+      // Auto-confirm price at most once every 2s when enabled (reduces UI churn)
+      try{
+        const cfg = appState.kutMilzAi || {};
+        if (cfg.autoConfirmPrice){
+          const now = Date.now();
+          const last = cfg._lastAutoConfirmAt || 0;
+          if ((now - last) >= 2000){
+            if (!appState.kutMilzAi) appState.kutMilzAi = {};
+            appState.kutMilzAi.confirmedPrice = { price: price, at: now, symbol: appState.symbol || document.getElementById('xdigits-market-options')?.value || null };
+            appState.kutMilzAi._lastAutoConfirmAt = now;
+            const confirmedEl = document.getElementById('xdigits-market-price-confirmed');
+            if (confirmedEl) confirmedEl.textContent = `Confirmed: ${price.toFixed(5)} @ ${new Date(now).toLocaleTimeString()}`;
+          }
+        }
+      }catch(_){ }
       
       // Update confidence meter on each tick
       updateConfidenceUI();
@@ -7997,6 +8901,27 @@ window.kutMilzAiManualTrade = function(typeOrDigit, forcedDirection){
       tradeType = `PUT: Digit ${digit} ≤ ${barrier}`;
     }
     logLine(`[KutMilzAi] Digit ${digit} selected | Barrier: ${barrier} | Prediction: ${direction}`);
+    // Bias filter (Xdigits) - only when KutMilzAi is enabled
+    try{
+      if (appState.kutMilzAi && appState.kutMilzAi.enabled){
+        const bc = computeAndUpdateBias();
+        if (bc){
+          const adj = bc.adjustedAverageBias || 0;
+          const stab = bc.stabilityPct || 0;
+          const th = bc.threshold || getMarketThreshold(appState.symbol);
+          if (stab < 85){
+            updateTradeStatus(`Blocked: Bias stability too low (${stab}%)`, "bg-yellow-600 text-white");
+            logLine(`[KutMilzAi] Manual trade blocked: stability ${stab}% < 85%`);
+            return;
+          }
+          if (!(adj >= th || adj <= -th)){
+            updateTradeStatus(`Blocked: Average Bias ${adj.toFixed(3)} within ±${th.toFixed(2)}`, "bg-yellow-600 text-white");
+            logLine(`[KutMilzAi] Manual trade blocked: adjusted bias ${adj.toFixed(3)} not beyond threshold ±${th.toFixed(2)}`);
+            return;
+          }
+        }
+      }
+    }catch(e){ /* non-fatal */ }
   } else {
     logLine("[KutMilzAi] Invalid trade type.");
     return;
@@ -8131,6 +9056,7 @@ function setSymbol(newSymbol){
   appState.chart.closedCandles = [];
 
   appState.trend.lastUpdated = 0;
+  // no per-symbol waiting needed — auto-confirm behavior handled per-tick below
   if (appState.trend.enabled) appState.trend.status = "LOADING";
 
   // Load saved settings for the new symbol
@@ -8393,6 +9319,19 @@ document.addEventListener("DOMContentLoaded", () => {
       el.addEventListener("input", updateStateFromUI);
       el.addEventListener("change", updateStateFromUI);
     });
+
+    // Xdigits tuning controls: update kutMilzAi settings immediately
+    try{
+      if (!appState.kutMilzAi) appState.kutMilzAi = {};
+      if (dom.xdigitsTuneMinStability){ dom.xdigitsTuneMinStability.addEventListener('change', ()=>{ appState.kutMilzAi.minStability = Number(dom.xdigitsTuneMinStability.value || 85); computeAndUpdateBias(); persistKutMilzState(); }); }
+      if (dom.xdigitsTuneBiasMult){ dom.xdigitsTuneBiasMult.addEventListener('change', ()=>{ appState.kutMilzAi.biasMultiplier = Number(dom.xdigitsTuneBiasMult.value || 1.0); computeAndUpdateBias(); persistKutMilzState(); }); }
+      if (dom.xdigitsTuneMinMomentum){ dom.xdigitsTuneMinMomentum.addEventListener('change', ()=>{ appState.kutMilzAi.minMomentum = Number(dom.xdigitsTuneMinMomentum.value || 0.0005); computeAndUpdateBias(); persistKutMilzState(); }); }
+      if (dom.xdigitsTuneCooldown){ dom.xdigitsTuneCooldown.addEventListener('change', ()=>{ appState.kutMilzAi.signalCooldownMs = Number(dom.xdigitsTuneCooldown.value || 30000); computeAndUpdateBias(); persistKutMilzState(); }); }
+      if (dom.xdigitsTuneMinOccurrences){ dom.xdigitsTuneMinOccurrences.addEventListener('change', ()=>{ appState.kutMilzAi.minOccurrences = Number(dom.xdigitsTuneMinOccurrences.value || 3); computeAndUpdateBias(); persistKutMilzState(); }); }
+
+      if (dom.xdigitsPriceInfluence){ dom.xdigitsPriceInfluence.addEventListener('change', ()=>{ appState.kutMilzAi.priceInfluence = Number(dom.xdigitsPriceInfluence.value || 20); computeAndUpdateBias(); persistKutMilzState(); }); }
+      if (dom.xdigitsAutoConfirm){ dom.xdigitsAutoConfirm.addEventListener('change', ()=>{ appState.kutMilzAi.autoConfirmPrice = !!dom.xdigitsAutoConfirm.checked; if (dom.xdigitsAutoConfirmBtn) { dom.xdigitsAutoConfirmBtn.textContent = appState.kutMilzAi.autoConfirmPrice ? 'Auto: ON' : 'Auto: OFF'; dom.xdigitsAutoConfirmBtn.style.background = appState.kutMilzAi.autoConfirmPrice ? '#059669' : '#374151'; } persistKutMilzState(); }); }
+    }catch(e){ console.error('Xdigits tuning wiring error', e); }
 
     dom.connectApiBtn?.addEventListener("click", () => {
       // Toggle connect/disconnect
