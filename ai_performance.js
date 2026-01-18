@@ -1334,3 +1334,218 @@ function updateDigitPredictionSummary() {
     window.kutAiX.digitPrediction = summary;
   }
 }
+
+// === BestX Auto Selection Functions ===
+
+// BestX state
+window.bestXState = {
+  active: false,
+  mode: null, // '1-trade' or '2-trades'
+  tradesRemaining: 0,
+  selectedDigits: [],
+  status: 'Ready'
+};
+
+// Initialize BestX
+function initBestX() {
+  if (dom.bestxBtn) {
+    dom.bestxBtn.addEventListener('click', showBestXModal);
+  }
+  if (dom.bestx1Trade) {
+    dom.bestx1Trade.addEventListener('click', () => startBestX('1-trade'));
+  }
+  if (dom.bestx2Trades) {
+    dom.bestx2Trades.addEventListener('click', () => startBestX('2-trades'));
+  }
+  if (dom.bestxCancel) {
+    dom.bestxCancel.addEventListener('click', closeBestXModal);
+  }
+  updateBestXStatus();
+}
+
+// Show BestX modal
+function showBestXModal() {
+  if (dom.bestxModal) {
+    dom.bestxModal.style.display = 'flex';
+  }
+}
+
+// Close BestX modal
+function closeBestXModal() {
+  if (dom.bestxModal) {
+    dom.bestxModal.style.display = 'none';
+  }
+}
+
+// Start BestX with selected mode
+function startBestX(mode) {
+  const summary = computeDigitPredictionSummary();
+  if (!summary || summary.isLowConfidence) {
+    UAE_showTimedPopup('❌ Cannot start BestX: Low confidence or insufficient data', 5000);
+    return;
+  }
+
+  // Check if barrier is too close
+  if (summary.barrier !== null && summary.tradeDirection) {
+    const barrier = summary.barrier;
+    const safetyRange = 1;
+    const validDigits = summary.digits.filter(item => {
+      if (summary.tradeDirection === 'CALL') {
+        return item.digit > barrier + safetyRange;
+      } else if (summary.tradeDirection === 'PUT') {
+        return item.digit < barrier - safetyRange;
+      }
+      return true;
+    });
+
+    if (validDigits.length === 0) {
+      UAE_showTimedPopup('❌ Cannot start BestX: No safe digits available near barrier', 5000);
+      return;
+    }
+  }
+
+  // Select digits based on mode
+  bestXState.active = true;
+  bestXState.mode = mode;
+  bestXState.selectedDigits = [];
+
+  if (mode === '1-trade') {
+    bestXState.tradesRemaining = 1;
+    bestXState.selectedDigits = [summary.top3[0].digit]; // Best digit
+  } else if (mode === '2-trades') {
+    bestXState.tradesRemaining = 2;
+    bestXState.selectedDigits = [summary.top3[0].digit, summary.top3[1].digit]; // Top 2
+  }
+
+  bestXState.status = 'Active';
+  updateBestXStatus();
+
+  // Close modal
+  if (dom.bestxModal) {
+    dom.bestxModal.style.display = 'none';
+  }
+
+  UAE_showTimedPopup(`🚀 BestX ${mode.replace('-', ' ')} activated! Monitoring for opportunities...`, 5000);
+
+  // Attempt first trade immediately if conditions met
+  attemptBestXTrade();
+}
+
+// Attempt to execute a BestX trade
+function attemptBestXTrade() {
+  if (!bestXState.active || bestXState.tradesRemaining <= 0) return;
+
+  const summary = computeDigitPredictionSummary();
+  if (!summary || summary.isLowConfidence) {
+    abortBestX('Low confidence detected');
+    return;
+  }
+
+  // Check stability
+  const overallStability = aiLayer?.rolling?.volStd || 0;
+  const stabilityThreshold = 0.0005;
+  if (overallStability > stabilityThreshold) {
+    abortBestX('Stability threshold exceeded');
+    return;
+  }
+
+  // Get next digit to trade
+  const nextDigit = bestXState.selectedDigits[bestXState.selectedDigits.length - bestXState.tradesRemaining];
+  if (nextDigit === undefined) {
+    abortBestX('No more digits to trade');
+    return;
+  }
+
+  // Check if digit is still valid
+  const digitData = summary.digits.find(d => d.digit === nextDigit);
+  if (!digitData || digitData.probability < 10) { // Minimum 10% probability
+    if (bestXState.mode === '2-trades' && bestXState.tradesRemaining === 1) {
+      // Skip second trade if invalid
+      bestXState.tradesRemaining = 0;
+      bestXState.status = 'Completed (1/2)';
+      updateBestXStatus();
+      UAE_showTimedPopup('⚠️ BestX: Second trade skipped - digit no longer valid', 5000);
+      return;
+    } else {
+      abortBestX('Selected digit no longer valid');
+      return;
+    }
+  }
+
+  // Check barrier safety
+  if (summary.barrier !== null && summary.tradeDirection) {
+    const barrier = summary.barrier;
+    const safetyRange = 1;
+    let isSafe = true;
+
+    if (summary.tradeDirection === 'CALL' && nextDigit <= barrier + safetyRange) {
+      isSafe = false;
+    } else if (summary.tradeDirection === 'PUT' && nextDigit >= barrier - safetyRange) {
+      isSafe = false;
+    }
+
+    if (!isSafe) {
+      abortBestX('Trade too close to barrier');
+      return;
+    }
+  }
+
+  // Execute trade using existing digit selection logic
+  // Determine direction based on digit vs barrier
+  let direction = 'CALL'; // Default
+  if (summary.barrier !== null) {
+    direction = nextDigit > summary.barrier ? 'CALL' : 'PUT';
+  }
+
+  if (window.kutMilzAiManualTrade) {
+    window.kutMilzAiManualTrade(nextDigit, direction);
+    bestXState.tradesRemaining--;
+    bestXState.status = bestXState.tradesRemaining > 0 ? `Waiting (${bestXState.tradesRemaining} remaining)` : 'Completed';
+    updateBestXStatus();
+
+    if (bestXState.tradesRemaining > 0) {
+      // Schedule next trade after cooldown
+      setTimeout(attemptBestXTrade, 30000); // 30 second cooldown
+    } else {
+      bestXState.active = false;
+      UAE_showTimedPopup('✅ BestX completed successfully!', 5000);
+    }
+  } else {
+    abortBestX('Trade execution function not available');
+  }
+}
+
+// Abort BestX
+function abortBestX(reason) {
+  bestXState.active = false;
+  bestXState.status = `Aborted: ${reason}`;
+  updateBestXStatus();
+  UAE_showTimedPopup(`❌ BestX aborted: ${reason}`, 5000);
+}
+
+// Update BestX status display
+function updateBestXStatus() {
+  if (dom.bestxStatus) {
+    dom.bestxStatus.textContent = bestXState.status;
+    dom.bestxStatus.className = `text-xs mt-2 ${
+      bestXState.status.includes('Active') ? 'text-emerald-400' :
+      bestXState.status.includes('Waiting') ? 'text-yellow-400' :
+      bestXState.status.includes('Aborted') ? 'text-red-400' :
+      bestXState.status.includes('Completed') ? 'text-blue-400' :
+      'text-slate-400'
+    }`;
+  }
+
+  // Lock manual digit selection if BestX is active
+  if (bestXState.active) {
+    // Disable digit buttons (assuming they have a class or can be disabled)
+    const digitButtons = document.querySelectorAll('[id^="xdigit-"]');
+    digitButtons.forEach(btn => btn.disabled = true);
+  } else {
+    const digitButtons = document.querySelectorAll('[id^="xdigit-"]');
+    digitButtons.forEach(btn => btn.disabled = false);
+  }
+}
+
+// Initialize BestX when DOM is ready
+document.addEventListener('DOMContentLoaded', initBestX);
