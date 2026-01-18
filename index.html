@@ -1793,10 +1793,8 @@ button {
           </div>
 
           <div class="flex items-center gap-3 mt-3">
-            <label class="flex items-center gap-2 text-sm">
-              <input id="kutMilzAi-ignore-samples" type="checkbox" class="h-4 w-4" disabled />
-              <span class="text-xs text-slate-300">Allow trades regardless of sample counts</span>
-            </label>
+            <span class="text-xs text-slate-300">Allow trades regardless of sample counts:</span>
+            <button id="kutMilzAi-ignore-samples-btn" class="px-3 py-1 text-xs rounded bg-slate-600 text-white transition-colors duration-200" type="button" disabled>OFF</button>
           </div>
 
           <div class="flex justify-between items-center">
@@ -2843,7 +2841,7 @@ button {
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
             <div>
               <label class="text-xs text-slate-400">Max Digits Stored</label>
-              <input id="kutMilzAi-max-digits" type="number" min="20" max="5000" step="10" value="500"
+              <input id="kutMilzAi-max-digits" type="number" min="20" max="50000" step="10" value="500"
                 class="w-full mt-1 p-2 bg-slate-800 border border-slate-600 rounded text-slate-100" disabled />
             </div>
             <div></div>
@@ -2854,6 +2852,102 @@ button {
 
 <div class="mt-4 pt-3 border-t border-slate-700">
           <p class="text-xs text-center text-slate-500">Made by Kut.Milz</p>
+        </div>
+      </div>
+
+      <!-- KutAiX (Digits AI) -->
+      <div class="card">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-xl font-semibold text-cyan-400">⚡ KutAiX (Digits AI)</h2>
+            <p class="text-sm text-slate-400">Advanced Digit Probability Engine</p>
+          </div>
+          <span class="pill bg-cyan-600 text-white text-xs">DIGITS ONLY</span>
+        </div>
+
+        <!-- User Controls -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          <div>
+            <label class="text-xs text-slate-400">Analysis Tick Count</label>
+            <input id="kutAiX-analysis-ticks" type="number" min="10" max="100" step="1" value="20"
+              class="w-full mt-1 p-2 bg-slate-800 border border-slate-600 rounded text-slate-100 focus:ring-cyan-500 focus:border-cyan-500" />
+          </div>
+          <div>
+            <label class="text-xs text-slate-400">Digit Threshold</label>
+            <input id="kutAiX-digit-threshold" type="number" min="0" max="9" step="1" value="5"
+              class="w-full mt-1 p-2 bg-slate-800 border border-slate-600 rounded text-slate-100 focus:ring-cyan-500 focus:border-cyan-500" />
+          </div>
+          <div>
+            <label class="text-xs text-slate-400">Confidence Filter %</label>
+            <input id="kutAiX-confidence-filter" type="number" min="0" max="100" step="1" value="0"
+              class="w-full mt-1 p-2 bg-slate-800 border border-slate-600 rounded text-slate-100 focus:ring-cyan-500 focus:border-cyan-500" />
+          </div>
+          <div class="flex items-end">
+            <button id="kutAiX-intelligent-barrier-btn" class="px-3 py-1 text-xs rounded bg-emerald-600 text-white transition-colors duration-200" type="button">ON</button>
+          </div>
+        </div>
+
+        <!-- Live Stats Panel -->
+        <div class="bg-slate-800/50 rounded-lg p-3 mb-4">
+          <h3 class="text-sm font-semibold text-slate-300 mb-2">Live Stats</h3>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <div>
+              <span class="text-slate-400">Current Price:</span>
+              <span id="kutAiX-current-price" class="text-white font-mono">--</span>
+            </div>
+            <div>
+              <span class="text-slate-400">Last Digit:</span>
+              <span id="kutAiX-last-digit" class="text-cyan-400 font-mono">--</span>
+            </div>
+            <div>
+              <span class="text-slate-400">Price Change:</span>
+              <span id="kutAiX-price-change" class="text-slate-300 font-mono">--</span>
+            </div>
+            <div>
+              <span class="text-slate-400">Ticks Analyzed:</span>
+              <span id="kutAiX-ticks-analyzed" class="text-slate-300 font-mono">--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Digit Threshold Analysis -->
+        <div class="bg-slate-800/50 rounded-lg p-3 mb-4">
+          <h3 class="text-sm font-semibold text-slate-300 mb-3">Digit Threshold Analysis</h3>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-slate-400">Digits Above Threshold:</span>
+              <div class="flex items-center space-x-2">
+                <div class="w-16 bg-slate-700 rounded-full h-2">
+                  <div id="kutAiX-above-bar" class="bg-green-500 h-2 rounded-full" style="width: 0%"></div>
+                </div>
+                <span id="kutAiX-above-stats" class="text-xs text-green-400 font-mono">--</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-slate-400">Digits Below / Equal Threshold:</span>
+              <div class="flex items-center space-x-2">
+                <div class="w-16 bg-slate-700 rounded-full h-2">
+                  <div id="kutAiX-below-bar" class="bg-red-500 h-2 rounded-full" style="width: 0%"></div>
+                </div>
+                <span id="kutAiX-below-stats" class="text-xs text-red-400 font-mono">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prediction Output -->
+        <div class="bg-slate-800/50 rounded-lg p-3 mb-4">
+          <h3 class="text-sm font-semibold text-slate-300 mb-2">Prediction Output</h3>
+          <div class="text-center">
+            <div id="kutAiX-prediction" class="text-lg font-bold text-slate-400 mb-1">--</div>
+            <div id="kutAiX-confidence" class="text-sm text-slate-500 mb-2">--</div>
+            <div id="kutAiX-bias" class="text-xs text-slate-400">--</div>
+          </div>
+        </div>
+
+        <!-- Prediction Summary Badge -->
+        <div class="text-center">
+          <span id="kutAiX-summary-badge" class="pill bg-slate-600 text-slate-300 text-xs">--</span>
         </div>
       </div>
 
@@ -3234,9 +3328,13 @@ button {
    SAFE DOM + LOGGING
 ========================================================= */
 function $(id){ return document.getElementById(id); }
-// Control whether the app is allowed to write to browser localStorage.
-// Default: false (nothing is written unless user explicitly enables it).
-window.ALLOW_LOCAL_STORAGE = false;
+// Initialize KutAiX global object for integration
+window.kutAiX = {
+  bias: 'NEUTRAL',
+  confidence: 0,
+  confirmation: false,
+  threshold: 5
+};
 window.safeSetItem = function(key, value){
   try{
     if (window.ALLOW_LOCAL_STORAGE){
@@ -3423,7 +3521,16 @@ autoTradingEnabled:true,
     barrier:5,              // Digit threshold for ICF X strategy (1-9)
     confidenceBoost:30,     // Percentage boost to add to confidence score (0-100)
     lookback:20,            // Number of ticks to use for per-digit stats
-    maxDigits:500           // Max stored historical digits for analysis (clamped 20..5000)
+    maxDigits:500           // Max stored historical digits for analysis (clamped 20..50000)
+  },
+
+  // KutAiX (Digits AI) - Advanced Digit Probability Engine
+  kutAiX:{
+    enabled:true,
+    analysisTicks:20,       // Number of ticks to analyze (10-100)
+    digitThreshold:5,       // Digit threshold for analysis (0-9)
+    confidenceFilter:0,     // Minimum confidence percentage (0-100)
+    intelligentBarrier:true // Enable intelligent barrier adjustment
   },
 
   // Burst Protection (optional): stand down briefly during tick-volatility bursts (best for Vol 1s)
@@ -4743,7 +4850,7 @@ const dom = {
   kutMilzAiBarrier: $("kutMilzAi-barrier"),
   kutMilzAiLookback: $("kutMilzAi-lookback"),
   kutMilzAiMaxDigits: $("kutMilzAi-max-digits"),
-  kutMilzAiIgnoreSamples: $("kutMilzAi-ignore-samples"),
+  kutMilzAiIgnoreSamples: $("kutMilzAi-ignore-samples-btn"),
   kutMilzAiBoost: $("kutMilzAi-boost"),
   kutMilzAiStatus: $("kutMilzAi-status"),
   xdigitsAutoConfirm: $("xdigits-auto-confirm-price"),
@@ -4759,6 +4866,24 @@ const dom = {
   xdigitsAlwaysOn: $("xdigits-always-on"),
   xdigitsForceOnceBtn: $("xdigits-force-once-btn"),
   xdigitsDiagnostics: $("xdigits-diagnostics"),
+
+  // KutAiX (Digits AI)
+  kutAiXAnalysisTicks: $("kutAiX-analysis-ticks"),
+  kutAiXDigitThreshold: $("kutAiX-digit-threshold"),
+  kutAiXConfidenceFilter: $("kutAiX-confidence-filter"),
+  kutAiXIntelligentBarrier: $("kutAiX-intelligent-barrier-btn"),
+  kutAiXCurrentPrice: $("kutAiX-current-price"),
+  kutAiXLastDigit: $("kutAiX-last-digit"),
+  kutAiXPriceChange: $("kutAiX-price-change"),
+  kutAiXTicksAnalyzed: $("kutAiX-ticks-analyzed"),
+  kutAiXAboveBar: $("kutAiX-above-bar"),
+  kutAiXAboveStats: $("kutAiX-above-stats"),
+  kutAiXBelowBar: $("kutAiX-below-bar"),
+  kutAiXBelowStats: $("kutAiX-below-stats"),
+  kutAiXPrediction: $("kutAiX-prediction"),
+  kutAiXConfidence: $("kutAiX-confidence"),
+  kutAiXBias: $("kutAiX-bias"),
+  kutAiXSummaryBadge: $("kutAiX-summary-badge"),
 
   // Burst Protection + Soft Score
   burstProtectToggle: $("burst-protect-toggle"),
@@ -5585,7 +5710,11 @@ function updateUI(){
   setIfNotEditing(dom.kutMilzAiBarrier, String(appState.kutMilzAi?.barrier ?? 5));
   setIfNotEditing(dom.kutMilzAiLookback, String(appState.kutMilzAi?.lookback ?? 33));
   if (dom.kutMilzAiMaxDigits) setIfNotEditing(dom.kutMilzAiMaxDigits, String(appState.kutMilzAi?.maxDigits ?? 500));
-  if (dom.kutMilzAiIgnoreSamples && document.activeElement !== dom.kutMilzAiIgnoreSamples) dom.kutMilzAiIgnoreSamples.checked = !!appState.kutMilzAi?.ignoreSampleThreshold;
+  if (dom.kutMilzAiIgnoreSamples && appState.kutMilzAi) {
+    const on = !!appState.kutMilzAi?.ignoreSampleThreshold;
+    dom.kutMilzAiIgnoreSamples.textContent = on ? 'ON' : 'OFF';
+    dom.kutMilzAiIgnoreSamples.style.background = on ? '#059669' : '#374151';
+  }
   setIfNotEditing(dom.kutMilzAiBoost, String(appState.kutMilzAi?.confidenceBoost ?? 30));
   if (dom.xdigitsAutoConfirm && appState.kutMilzAi) dom.xdigitsAutoConfirm.checked = !!appState.kutMilzAi?.autoConfirmPrice;
   if (dom.xdigitsAutoConfirmBtn && appState.kutMilzAi){
@@ -5608,6 +5737,19 @@ function updateUI(){
     const boost = appState.kutMilzAi.confidenceBoost ?? 30;
     dom.kutMilzAiStatus.textContent = on ? `KutMilzAi Pro Engine is ON (Barrier: ${barrier}, Boost: ${boost}%).` : "KutMilzAi Pro Engine is OFF.";
   }
+
+  // KutAiX (Digits AI) UI
+  setIfNotEditing(dom.kutAiXAnalysisTicks, String(appState.kutAiX?.analysisTicks ?? 20));
+  setIfNotEditing(dom.kutAiXDigitThreshold, String(appState.kutAiX?.digitThreshold ?? 5));
+  setIfNotEditing(dom.kutAiXConfidenceFilter, String(appState.kutAiX?.confidenceFilter ?? 0));
+  if (dom.kutAiXIntelligentBarrier && appState.kutAiX) {
+    const on = !!appState.kutAiX.intelligentBarrier;
+    dom.kutAiXIntelligentBarrier.textContent = on ? 'ON' : 'OFF';
+    dom.kutAiXIntelligentBarrier.style.background = on ? '#059669' : '#374151';
+  }
+
+  // Update KutAiX live stats
+  updateKutAiXStats();
 
   // Scalp Indicator Assist UI
   if (dom.scalpIndToggle && appState.scalpInd){
@@ -5867,8 +6009,8 @@ function updateStateFromUI(){
     if (dom.kutMilzAiToggle) appState.kutMilzAi.enabled = !!dom.kutMilzAiToggle.checked;
     if (dom.kutMilzAiBarrier) appState.kutMilzAi.barrier = Math.max(1, Math.min(9, parseInt(dom.kutMilzAiBarrier.value) || 5));
     if (dom.kutMilzAiLookback) appState.kutMilzAi.lookback = Math.max(10, Math.min(200, parseInt(dom.kutMilzAiLookback.value) || 20));
-    if (dom.kutMilzAiMaxDigits) appState.kutMilzAi.maxDigits = Math.max(20, Math.min(5000, parseInt(dom.kutMilzAiMaxDigits.value) || 500));
-    if (dom.kutMilzAiIgnoreSamples) appState.kutMilzAi.ignoreSampleThreshold = !!dom.kutMilzAiIgnoreSamples.checked;
+    if (dom.kutMilzAiMaxDigits) appState.kutMilzAi.maxDigits = Math.max(20, Math.min(50000, parseInt(dom.kutMilzAiMaxDigits.value) || 500));
+    if (dom.kutMilzAiIgnoreSamples) appState.kutMilzAi.ignoreSampleThreshold = dom.kutMilzAiIgnoreSamples.textContent === 'ON';
     if (dom.kutMilzAiBoost) appState.kutMilzAi.confidenceBoost = Math.max(0, Math.min(100, parseInt(dom.kutMilzAiBoost.value) || 30));
 
     // Xdigits Signal Tuning (persist editable fields so changes 'stay')
@@ -6362,7 +6504,7 @@ function updateClustering(price){
   appState.lastDigits.push(d);
   // Keep up to configured max digits to limit memory — default/clamped via appState.kutMilzAi.maxDigits
   try{
-    const maxDigits = Math.max(20, Math.min(5000, Number(appState.kutMilzAi?.maxDigits ?? 500)));
+    const maxDigits = Math.max(20, Math.min(50000, Number(appState.kutMilzAi?.maxDigits ?? 500)));
     while(appState.lastDigits.length > maxDigits) appState.lastDigits.shift();
   }catch(_){
     // fallback to legacy 50 if something goes wrong
@@ -6426,6 +6568,10 @@ function updateXdigitsDisplay() {
         const cur = appState.kutMilzAi && appState.kutMilzAi.confirmedPrice ? appState.kutMilzAi.confirmedPrice : null;
         if (!cur || cur.symbol !== sym){
           if (!appState.kutMilzAi) appState.kutMilzAi = {};
+          // Store previous confirmed price for change calculations
+          if (cur && cur.price) {
+            appState.kutMilzAi.previousConfirmedPrice = cur.price;
+          }
           appState.kutMilzAi.confirmedPrice = { price: p, at: Date.now(), symbol: sym };
           if (confirmedEl) confirmedEl.textContent = `Confirmed: ${p.toFixed(5)} @ ${new Date().toLocaleTimeString()}`;
           logLine('Auto-confirmed market price: ' + (sym || '') + ' ' + p);
@@ -6535,6 +6681,9 @@ function updateXdigitsDisplay() {
       btnEl.style.color = 'white';
     }
   }
+
+  // Update KutAiX stats after digit processing
+  updateKutAiXStats();
 }
 
 /**
@@ -6609,7 +6758,7 @@ function showXdigitsTradeModal(digit, barrier, predictedType, stats) {
   }
 
   // Update modal title/message with digit info and dominant percentage
-  title.textContent = `Digit ${digit} — Barrier ${barrier}`;
+  title.textContent = `Digit ${digit}`;
   if (callPct !== null && putPct !== null){
     message.textContent = `Digit ${digit} | ${dominantLabel} | Select trade type:`;
   } else {
@@ -6617,7 +6766,7 @@ function showXdigitsTradeModal(digit, barrier, predictedType, stats) {
   }
   
   // Configure CALL button
-  callBtn.textContent = `📈 CALL Digit ${digit} (Higher than ${barrier}) ${callPct !== null ? `— ${callPct.toFixed(1)}%` : ''}`;
+  callBtn.textContent = `📈 CALL — Higher than ${digit} ${callPct !== null ? `— ${callPct.toFixed(1)}%` : ''}`;
   callBtn.onclick = () => {
     closeXdigitsTradeModal();
     // Pass the selected digit and force CALL so the manual trade handler uses this digit
@@ -6625,7 +6774,7 @@ function showXdigitsTradeModal(digit, barrier, predictedType, stats) {
   };
   
   // Configure PUT button
-  putBtn.textContent = `📉 PUT Digit ${digit} (Lower than ${barrier}) ${putPct !== null ? `— ${putPct.toFixed(1)}%` : ''}`;
+  putBtn.textContent = `📉 PUT — Lower than ${digit} ${putPct !== null ? `— ${putPct.toFixed(1)}%` : ''}`;
   putBtn.onclick = () => {
     closeXdigitsTradeModal();
     // Pass the selected digit and force PUT so the manual trade handler uses this digit
@@ -7082,6 +7231,10 @@ try{
         const p = (typeof appState.lastTick !== 'undefined' && appState.lastTick !== null) ? Number(appState.lastTick) : null;
         if (!p) { logLine('No price available to confirm'); return; }
         if (!appState.kutMilzAi) appState.kutMilzAi = {};
+        // Store previous confirmed price for change calculations
+        if (appState.kutMilzAi.confirmedPrice && appState.kutMilzAi.confirmedPrice.price) {
+          appState.kutMilzAi.previousConfirmedPrice = appState.kutMilzAi.confirmedPrice.price;
+        }
         appState.kutMilzAi.confirmedPrice = { price: p, at: Date.now(), symbol: appState.symbol || document.getElementById('xdigits-market-options')?.value || null };
         const confirmedEl = document.getElementById('xdigits-market-price-confirmed');
         if (confirmedEl) confirmedEl.textContent = `Confirmed: ${p.toFixed(5)} @ ${new Date().toLocaleTimeString()}`;
@@ -7656,6 +7809,168 @@ function updateConfidenceUI(){
 }
 
 /* =========================================================
+   KutAiX (Digits AI) Functions
+========================================================= */
+
+// Compute KutAiX digit analysis
+function computeKutAiXAnalysis() {
+  const digits = appState.lastDigits || [];
+  if (digits.length === 0) return null;
+
+  const analysisTicks = appState.kutAiX?.analysisTicks ?? 20;
+  const digitThreshold = appState.kutAiX?.digitThreshold ?? 5;
+  const confidenceFilter = appState.kutAiX?.confidenceFilter ?? 55;
+
+  // Get recent digits for analysis
+  const recentDigits = digits.slice(-analysisTicks);
+  const totalDigits = recentDigits.length;
+
+  if (totalDigits < 5) return null; // Need minimum data
+
+  // Count digits above and below/equal threshold
+  let aboveCount = 0;
+  let belowEqualCount = 0;
+
+  for (const digit of recentDigits) {
+    if (digit > digitThreshold) aboveCount++;
+    else belowEqualCount++;
+  }
+
+  const abovePct = (aboveCount / totalDigits) * 100;
+  const belowEqualPct = (belowEqualCount / totalDigits) * 100;
+
+  // Determine prediction based on higher probability
+  let prediction, confidence, bias;
+  if (abovePct > belowEqualPct) {
+    prediction = 'OVER';
+    confidence = abovePct;
+    bias = `Slight bias toward digits > ${digitThreshold}`;
+  } else if (belowEqualPct > abovePct) {
+    prediction = 'UNDER';
+    confidence = belowEqualPct;
+    bias = `Slight bias toward digits ≤ ${digitThreshold}`;
+  } else {
+    prediction = 'NEUTRAL';
+    confidence = 50;
+    bias = 'No clear bias detected';
+  }
+
+  // Determine if prediction meets confidence filter
+  const isConfirmed = confidence >= confidenceFilter;
+
+  return {
+    totalDigits,
+    aboveCount,
+    belowEqualCount,
+    abovePct,
+    belowEqualPct,
+    prediction,
+    confidence,
+    bias,
+    isConfirmed,
+    digitThreshold
+  };
+}
+
+// Update KutAiX UI with live stats and analysis
+function updateKutAiXStats() {
+  // Determine price source: use confirmed price if auto-confirm is enabled
+  let currentPrice, priceSource;
+  const autoConfirmEnabled = appState.kutMilzAi && appState.kutMilzAi.autoConfirmPrice;
+  const confirmedPrice = appState.kutMilzAi?.confirmedPrice;
+
+  if (autoConfirmEnabled && confirmedPrice && confirmedPrice.price) {
+    currentPrice = confirmedPrice.price;
+    priceSource = 'confirmed';
+  } else {
+    currentPrice = appState.lastPrice || 0;
+    priceSource = 'live';
+  }
+
+  // Calculate last digit from current price
+  const priceStr = currentPrice.toString();
+  const lastDigit = priceStr.replace(/\D/g, '').slice(-1) || "0";
+  const lastDigitNum = parseInt(lastDigit, 10);
+
+  // Calculate price change (use previous confirmed price if available, otherwise fallback)
+  let prevPrice = appState.previousPrice || currentPrice;
+  if (priceSource === 'confirmed' && appState.kutMilzAi?.previousConfirmedPrice) {
+    prevPrice = appState.kutMilzAi.previousConfirmedPrice;
+  }
+  const priceChange = currentPrice - prevPrice;
+
+  const ticksAnalyzed = appState.lastDigits?.length || 0;
+
+  if (dom.kutAiXCurrentPrice) {
+    dom.kutAiXCurrentPrice.textContent = currentPrice.toFixed(5);
+    // Add visual indicator for price source
+    const sourceIndicator = priceSource === 'confirmed' ? ' 🔒' : ' 📊';
+    dom.kutAiXCurrentPrice.textContent += sourceIndicator;
+  }
+  if (dom.kutAiXLastDigit) dom.kutAiXLastDigit.textContent = lastDigitNum;
+  if (dom.kutAiXPriceChange) {
+    const changeText = priceChange >= 0 ? `+${priceChange.toFixed(5)}` : priceChange.toFixed(5);
+    const changeColor = priceChange >= 0 ? 'text-green-400' : 'text-red-400';
+    dom.kutAiXPriceChange.innerHTML = `<span class="${changeColor}">${changeText}</span>`;
+  }
+  if (dom.kutAiXTicksAnalyzed) dom.kutAiXTicksAnalyzed.textContent = ticksAnalyzed;
+
+  // Update analysis
+  const analysis = computeKutAiXAnalysis();
+  if (!analysis) return;
+
+  // Update threshold analysis bars and stats
+  if (dom.kutAiXAboveBar) dom.kutAiXAboveBar.style.width = `${analysis.abovePct}%`;
+  if (dom.kutAiXAboveStats) {
+    dom.kutAiXAboveStats.textContent = `${analysis.abovePct.toFixed(1)}% (${analysis.aboveCount})`;
+  }
+
+  if (dom.kutAiXBelowBar) dom.kutAiXBelowBar.style.width = `${analysis.belowEqualPct}%`;
+  if (dom.kutAiXBelowStats) {
+    dom.kutAiXBelowStats.textContent = `${analysis.belowEqualPct.toFixed(1)}% (${analysis.belowEqualCount})`;
+  }
+
+  // Update prediction output
+  if (dom.kutAiXPrediction) {
+    dom.kutAiXPrediction.textContent = analysis.prediction === 'NEUTRAL' ? '--' :
+      `Prediction: ${analysis.prediction} ${analysis.digitThreshold}`;
+  }
+
+  if (dom.kutAiXConfidence) {
+    dom.kutAiXConfidence.textContent = analysis.confidence >= 50 ?
+      `Confidence: ${analysis.confidence.toFixed(1)}%` : '--';
+  }
+
+  if (dom.kutAiXBias) {
+    dom.kutAiXBias.textContent = analysis.bias;
+  }
+
+  // Update summary badge
+  if (dom.kutAiXSummaryBadge) {
+    let badgeText, badgeClass;
+    if (analysis.prediction === 'NEUTRAL' || !analysis.isConfirmed) {
+      badgeText = 'NO-TRADE';
+      badgeClass = 'bg-slate-600 text-slate-300';
+    } else {
+      badgeText = `${analysis.prediction === 'OVER' ? 'ABOVE' : 'UNDER'} ${analysis.digitThreshold} | ${analysis.confidence.toFixed(0)}%`;
+      badgeClass = analysis.confidence >= 70 ? 'bg-green-600 text-white' :
+                   analysis.confidence >= 60 ? 'bg-yellow-600 text-white' : 'bg-orange-600 text-white';
+    }
+    dom.kutAiXSummaryBadge.textContent = badgeText;
+    dom.kutAiXSummaryBadge.className = `pill ${badgeClass}`;
+  }
+
+  // Expose flags for integration with KutMilzAi
+  if (window.kutAiX) {
+    window.kutAiX.bias = analysis.prediction === 'OVER' ? 'ABOVE' :
+                        analysis.prediction === 'UNDER' ? 'BELOW' : 'NEUTRAL';
+    window.kutAiX.confidence = analysis.confidence;
+    window.kutAiX.confirmation = analysis.isConfirmed;
+    window.kutAiX.threshold = analysis.digitThreshold;
+  }
+}
+
+/* =========================================================
    Deriv WS + Trading
 ========================================================= */
 function connectToDeriv(){
@@ -8026,6 +8341,10 @@ function handleResponse(res){
           const last = cfg._lastAutoConfirmAt || 0;
           if ((now - last) >= 2000){
             if (!appState.kutMilzAi) appState.kutMilzAi = {};
+            // Store previous confirmed price for change calculations
+            if (appState.kutMilzAi.confirmedPrice && appState.kutMilzAi.confirmedPrice.price) {
+              appState.kutMilzAi.previousConfirmedPrice = appState.kutMilzAi.confirmedPrice.price;
+            }
             appState.kutMilzAi.confirmedPrice = { price: price, at: now, symbol: appState.symbol || document.getElementById('xdigits-market-options')?.value || null };
             appState.kutMilzAi._lastAutoConfirmAt = now;
             const confirmedEl = document.getElementById('xdigits-market-price-confirmed');
@@ -8956,21 +9275,35 @@ window.kutMilzAiManualTrade = function(typeOrDigit, forcedDirection){
     logLine(`[KutMilzAi] Digit ${digit} selected | Barrier: ${barrier} | Prediction: ${direction}`);
     // Bias filter (Xdigits) - only when KutMilzAi is enabled
     try{
+
       if (appState.kutMilzAi && appState.kutMilzAi.enabled){
+        // Check if KutAiX allows bypassing Average Bias blocks
+        const kutAiXAnalysis = computeKutAiXAnalysis();
+        const bypassBiasBlocks = kutAiXAnalysis && kutAiXAnalysis.abovePct > 70;
+
         const bc = computeAndUpdateBias();
         if (bc){
           const adj = bc.adjustedAverageBias || 0;
           const stab = bc.stabilityPct || 0;
           const th = bc.threshold || getMarketThreshold(appState.symbol);
-          if (stab < 85){
+
+          // Only check stability if not bypassing
+          if (!bypassBiasBlocks && stab < 85){
             updateTradeStatus(`Blocked: Bias stability too low (${stab}%)`, "bg-yellow-600 text-white");
             logLine(`[KutMilzAi] Manual trade blocked: stability ${stab}% < 85%`);
             return;
           }
-          if (!(adj >= th || adj <= -th)){
+
+          // Only check bias threshold if not bypassing
+          if (!bypassBiasBlocks && !(adj >= th || adj <= -th)){
             updateTradeStatus(`Blocked: Average Bias ${adj.toFixed(3)} within ±${th.toFixed(2)}`, "bg-yellow-600 text-white");
             logLine(`[KutMilzAi] Manual trade blocked: adjusted bias ${adj.toFixed(3)} not beyond threshold ±${th.toFixed(2)}`);
             return;
+          }
+
+          // Log bypass if it occurred
+          if (bypassBiasBlocks) {
+            logLine(`[KutAiX] Average Bias blocks bypassed: digits above threshold ${kutAiXAnalysis.abovePct.toFixed(1)}% > 70%`);
           }
         }
       }
@@ -9220,6 +9553,39 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
+    // KutAiX controls
+    if (dom.kutAiXAnalysisTicks){
+      dom.kutAiXAnalysisTicks.addEventListener("input", () => {
+        if (!appState.kutAiX) appState.kutAiX = {};
+        appState.kutAiX.analysisTicks = parseInt(dom.kutAiXAnalysisTicks.value) || 20;
+        updateKutAiXStats();
+      });
+    }
+    if (dom.kutAiXDigitThreshold){
+      dom.kutAiXDigitThreshold.addEventListener("input", () => {
+        if (!appState.kutAiX) appState.kutAiX = {};
+        appState.kutAiX.digitThreshold = parseInt(dom.kutAiXDigitThreshold.value) || 5;
+        updateKutAiXStats();
+      });
+    }
+    if (dom.kutAiXConfidenceFilter){
+      dom.kutAiXConfidenceFilter.addEventListener("input", () => {
+        if (!appState.kutAiX) appState.kutAiX = {};
+        appState.kutAiX.confidenceFilter = parseInt(dom.kutAiXConfidenceFilter.value) || 0;
+        updateKutAiXStats();
+      });
+    }
+    if (dom.kutAiXIntelligentBarrier){
+      dom.kutAiXIntelligentBarrier.addEventListener("click", () => {
+        if (!appState.kutAiX) appState.kutAiX = {};
+        appState.kutAiX.intelligentBarrier = !appState.kutAiX.intelligentBarrier;
+        const on = !!appState.kutAiX.intelligentBarrier;
+        dom.kutAiXIntelligentBarrier.textContent = on ? 'ON' : 'OFF';
+        dom.kutAiXIntelligentBarrier.style.background = on ? '#059669' : '#374151';
+        updateKutAiXStats();
+      });
+    }
+
     // MILZXAI markets selector
     if (dom.milzxaiMarkets){
       dom.milzxaiMarkets.addEventListener("change", () => {
@@ -9462,7 +9828,14 @@ document.addEventListener("DOMContentLoaded", () => {
     dom.kutMilzAiBoost?.addEventListener("input", () => updateStateFromUI());
     dom.kutMilzAiLookback?.addEventListener("input", () => updateStateFromUI());
     dom.kutMilzAiMaxDigits?.addEventListener("input", () => updateStateFromUI());
-    dom.kutMilzAiIgnoreSamples?.addEventListener("change", () => updateStateFromUI());
+    dom.kutMilzAiIgnoreSamples?.addEventListener("click", () => {
+      if (!appState.kutMilzAi) appState.kutMilzAi = {};
+      appState.kutMilzAi.ignoreSampleThreshold = !appState.kutMilzAi.ignoreSampleThreshold;
+      const on = !!appState.kutMilzAi.ignoreSampleThreshold;
+      dom.kutMilzAiIgnoreSamples.textContent = on ? 'ON' : 'OFF';
+      dom.kutMilzAiIgnoreSamples.style.background = on ? '#059669' : '#374151';
+      updateStateFromUI();
+    });
 
     // Burst Protection + Soft Score
     dom.burstProtectToggle?.addEventListener("change", () => { updateStateFromUI(); updateUI(); });
@@ -10624,7 +10997,7 @@ document.addEventListener("AI_TRADE", e => {
   'use strict';
 
   // Login credentials
-  const VALID_KEY = '876641';
+  const VALID_KEY = 'AdminMilzAi-77';
   const VALID_PASSWORD = 'Q1977';
 
   // DOM elements
