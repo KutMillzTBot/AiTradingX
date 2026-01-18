@@ -1,6 +1,6 @@
 {
   "meta": {
-    "version": "10.0",
+    "version": "10.1",
     "created": 1768348800000,
     "autosaveMs": 5000,
     "totalTrades": 247,
@@ -8,7 +8,7 @@
     "totalLosses": 105,
     "bestStreak": 8,
     "currentStreak": 3,
-    "lastUpdate": 1768348800000
+    "lastUpdate": 1768435200000
   },
   "session": {
     "trades": 12,
@@ -220,5 +220,27 @@
       "confidence": 0.45,
       "time": 1736476800000
     }
-  ]
+  ],
+  "digitPrediction": {
+    "enabled": true,
+    "analysisTicks": 20,
+    "stabilityThreshold": 0.0005,
+    "safetyRange": 1,
+    "weights": {
+      "baseProb": 0.4,
+      "stability": 0.3,
+      "persistence": 0.4,
+      "tickBehavior": 0.3
+    },
+    "barrierAdjustments": {
+      "boost": 1.2,
+      "penalty": 0.7
+    },
+    "stats": {
+      "totalAnalyses": 0,
+      "avgTop3Accuracy": 0,
+      "avgBottom3Accuracy": 0,
+      "lastAnalysis": null
+    }
+  }
 }
