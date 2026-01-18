@@ -1753,6 +1753,28 @@ button {
         </div>
       </div>
 
+      <!-- RuShXA Mode Warning Modal -->
+      <div id="rushxa-warning-modal" style="display:none;position: fixed; inset:0; background: rgba(0,0,0,0.7); z-index: 10000; align-items:center; justify-content:center;">
+        <div style="background:#071024;border-radius:10px;padding:18px;max-width:500px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.7);border:1px solid #1f2937;color:#cbd5e1;">
+          <h3 style="font-size:18px;margin-bottom:12px;color:#ef4444;font-weight:bold;">⚠️ CRITICAL WARNING: RuShXA Mode ⚠️</h3>
+          <div style="background:#1f2937;padding:12px;border-radius:6px;margin-bottom:16px;border-left:4px solid #ef4444;">
+            <div style="font-size:14px;font-weight:bold;margin-bottom:8px;color:#ef4444;">RULE #1: NEVER GET GREEDY</div>
+            <div style="font-size:12px;color:#cbd5e1;line-height:1.4;">
+              • Never increase stake size after 3 consecutive wins<br>
+              • Never chase losses by increasing stake size<br>
+              • Never think "just one more trade" when on a winning streak<br>
+              • Always reduce stake when balance exceeds 50% of starting capital<br>
+              • Greed is the #1 reason traders lose everything.
+            </div>
+          </div>
+          <p style="font-size:13px;margin-bottom:16px;color:#cbd5e1;">RuShXA Mode removes safety restrictions and allows high-risk trading. Only proceed if you fully understand the risks and are experienced with digit patterns and ACCU calculations.</p>
+          <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button id="rushxa-step-back" class="px-4 py-2 rounded bg-green-600 text-white font-semibold">Step Back</button>
+            <button id="rushxa-proceed" class="px-4 py-2 rounded bg-red-600 text-white font-semibold">Proceed</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Toast container (created dynamically) -->
       <div id="xdigits-toast-container" style="position:fixed;right:16px;bottom:16px;z-index:99999;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none;"></div>
 
@@ -7305,6 +7327,13 @@ try{
     const rxModal = document.getElementById('xdigits-relax-modal');
     if (rxConfirm){ rxConfirm.addEventListener('click', ()=>{ try{ const el = document.getElementById('xdigits-relax-gating'); if (el) el.checked = true; if (rxModal) rxModal.style.display='none'; updateStateFromUI && updateStateFromUI(); window.persistKutMilzState(); showToast && showToast('Relax Gating enabled'); }catch(e){} }); }
     if (rxCancel){ rxCancel.addEventListener('click', ()=>{ try{ if (rxModal) rxModal.style.display='none'; const el = document.getElementById('xdigits-relax-gating'); if (el) el.checked = false; showToast && showToast('Relax Gating cancelled'); }catch(e){} }); }
+
+    // RuShXA warning modal wiring
+    const rushxaStepBack = document.getElementById('rushxa-step-back');
+    const rushxaProceed = document.getElementById('rushxa-proceed');
+    const rushxaModal = document.getElementById('rushxa-warning-modal');
+    if (rushxaStepBack){ rushxaStepBack.addEventListener('click', ()=>{ try{ if (rushxaModal) rushxaModal.style.display='none'; showToast && showToast('RuShXA Mode cancelled - Good choice!'); }catch(e){} }); }
+    if (rushxaProceed){ rushxaProceed.addEventListener('click', ()=>{ try{ appState.rushXAiEnabled = true; const chk = document.getElementById('rushXAiToggle'); if (chk) chk.checked = true; if (rushxaModal) rushxaModal.style.display='none'; logLine("RuShXAi Mode: ON"); if (typeof UAE_showTimedPopup === 'function') { UAE_showTimedPopup('🚀 RuShXA ACTIVATED! AI observation mode engaged. News/event pauses AND time restrictions overridden. Two consecutive losses trigger 120-second cooldown. Remember: high reward = high risk!', 15000); } updateUI(); showToast && showToast('RuShXA Mode enabled - Use with extreme caution!'); }catch(e){} }); }
   });
 }catch(e){}
 
@@ -9921,15 +9950,17 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     dom.rushXAiToggle?.addEventListener("change", (e) => {
-      appState.rushXAiEnabled = !!e.target.checked;
-      logLine("RuShXAi Mode: " + (appState.rushXAiEnabled ? "ON" : "OFF"));
-      if (appState.rushXAiEnabled) {
-        // Show risk popup
-        if (typeof UAE_showTimedPopup === 'function') {
-          UAE_showTimedPopup('🚀 RuShXA ACTIVATED! AI observation mode engaged. News/event pauses AND time restrictions overridden. Two consecutive losses trigger 120-second cooldown. Remember: high reward = high risk!', 15000);
-        }
+      if (e.target.checked) {
+        // Show warning modal instead of directly enabling
+        e.target.checked = false; // Reset checkbox
+        const modal = document.getElementById('rushxa-warning-modal');
+        if (modal) modal.style.display = 'flex';
+      } else {
+        // Allow disabling without confirmation
+        appState.rushXAiEnabled = false;
+        logLine("RuShXAi Mode: OFF");
+        updateUI();
       }
-      updateUI();
     });
 
     
