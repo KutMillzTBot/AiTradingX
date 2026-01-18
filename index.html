@@ -1775,6 +1775,19 @@ button {
         </div>
       </div>
 
+      <!-- BestX Auto Selection Modal -->
+      <div id="bestx-modal" style="display:none;position: fixed; inset:0; background: rgba(0,0,0,0.7); z-index: 10000; align-items:center; justify-content:center;" onclick="closeBestXModal()">
+        <div style="background:#071024;border-radius:10px;padding:18px;max-width:420px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.7);border:1px solid #1f2937;color:#cbd5e1;" onclick="event.stopPropagation()">
+          <h3 style="font-size:18px;margin-bottom:8px;color:#93c5fd;">Hey — let BestX handle it for you</h3>
+          <p style="font-size:13px;margin-bottom:16px;color:#cbd5e1;">How many trades would you like?</p>
+          <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button id="bestx-1-trade" class="px-3 py-2 rounded bg-purple-600 text-white">1 Trade</button>
+            <button id="bestx-2-trades" class="px-3 py-2 rounded bg-pink-600 text-white">2 Trades</button>
+            <button id="bestx-cancel" class="px-3 py-2 rounded bg-slate-700 text-white">Cancel</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Toast container (created dynamically) -->
       <div id="xdigits-toast-container" style="position:fixed;right:16px;bottom:16px;z-index:99999;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none;"></div>
 
@@ -3026,6 +3039,14 @@ button {
         <!-- Prediction Summary Badge -->
         <div class="text-center">
           <span id="kutAiX-summary-badge" class="pill bg-slate-600 text-slate-300 text-xs">--</span>
+        </div>
+
+        <!-- BestX Auto Selection -->
+        <div class="text-center mt-4">
+          <button id="bestx-btn" class="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-200 shadow-lg">
+            ⚡ BestX Auto Selection
+          </button>
+          <div id="bestx-status" class="text-xs text-slate-400 mt-2">Ready</div>
         </div>
       </div>
 
@@ -4976,6 +4997,14 @@ const dom = {
   kutAiXBottomDigits: $("kutAiX-bottom-digits"),
   kutAiXSummaryFactors: $("kutAiX-summary-factors"),
   kutAiXBarrierInfo: $("kutAiX-barrier-info"),
+
+  // BestX Auto Selection
+  bestxBtn: $("bestx-btn"),
+  bestxModal: $("bestx-modal"),
+  bestx1Trade: $("bestx-1-trade"),
+  bestx2Trades: $("bestx-2-trades"),
+  bestxCancel: $("bestx-cancel"),
+  bestxStatus: $("bestx-status"),
 
   // Burst Protection + Soft Score
   burstProtectToggle: $("burst-protect-toggle"),
