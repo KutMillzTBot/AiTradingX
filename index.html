@@ -2967,6 +2967,62 @@ button {
           </div>
         </div>
 
+        <!-- Digit Prediction Summary Layer -->
+        <div class="bg-slate-800/50 rounded-lg p-3 mb-4">
+          <h3 class="text-sm font-semibold text-slate-300 mb-3">⚡ Digit Prediction Summary</h3>
+
+          <!-- Summary Status -->
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-xs text-slate-400">Status:</div>
+            <div id="kutAiX-summary-status" class="text-xs font-semibold text-emerald-400">ANALYZING</div>
+          </div>
+
+          <!-- TOP 3 Most Likely Digits -->
+          <div class="mb-3">
+            <div class="text-xs text-slate-400 mb-2">TOP 3 Most Likely:</div>
+            <div id="kutAiX-top-digits" class="grid grid-cols-3 gap-2">
+              <div class="text-center p-2 bg-slate-700/50 rounded text-sm">
+                <div class="text-cyan-400 font-bold text-lg">--</div>
+                <div class="text-xs text-slate-400">--%</div>
+              </div>
+              <div class="text-center p-2 bg-slate-700/50 rounded text-sm">
+                <div class="text-cyan-400 font-bold text-lg">--</div>
+                <div class="text-xs text-slate-400">--%</div>
+              </div>
+              <div class="text-center p-2 bg-slate-700/50 rounded text-sm">
+                <div class="text-cyan-400 font-bold text-lg">--</div>
+                <div class="text-xs text-slate-400">--%</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BOTTOM 3 Least Likely Digits -->
+          <div class="mb-3">
+            <div class="text-xs text-slate-400 mb-2">BOTTOM 3 Least Likely:</div>
+            <div id="kutAiX-bottom-digits" class="grid grid-cols-3 gap-2">
+              <div class="text-center p-2 bg-slate-700/50 rounded text-sm">
+                <div class="text-red-400 font-bold text-lg">--</div>
+                <div class="text-xs text-slate-400">--%</div>
+              </div>
+              <div class="text-center p-2 bg-slate-700/50 rounded text-sm">
+                <div class="text-red-400 font-bold text-lg">--</div>
+                <div class="text-xs text-slate-400">--%</div>
+              </div>
+              <div class="text-center p-2 bg-slate-700/50 rounded text-sm">
+                <div class="text-red-400 font-bold text-lg">--</div>
+                <div class="text-xs text-slate-400">--%</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Summary Details -->
+          <div class="text-xs text-slate-500 space-y-1">
+            <div>Based on: <span id="kutAiX-summary-factors" class="text-slate-400">Stability, Bias Persistence, Tick Behavior</span></div>
+            <div>Updates: <span class="text-slate-400">Every tick (locked during active trade)</span></div>
+            <div id="kutAiX-barrier-info" class="text-slate-400">No barrier selected</div>
+          </div>
+        </div>
+
         <!-- Prediction Summary Badge -->
         <div class="text-center">
           <span id="kutAiX-summary-badge" class="pill bg-slate-600 text-slate-300 text-xs">--</span>
@@ -3355,7 +3411,14 @@ window.kutAiX = {
   bias: 'NEUTRAL',
   confidence: 0,
   confirmation: false,
-  threshold: 5
+  threshold: 5,
+  // Digit Prediction Summary
+  digitSummary: {
+    top3: [],
+    bottom3: [],
+    isLocked: false,
+    lowConfidence: false
+  }
 };
 window.safeSetItem = function(key, value){
   try{
@@ -4906,6 +4969,13 @@ const dom = {
   kutAiXConfidence: $("kutAiX-confidence"),
   kutAiXBias: $("kutAiX-bias"),
   kutAiXSummaryBadge: $("kutAiX-summary-badge"),
+
+  // Digit Prediction Summary Layer
+  kutAiXSummaryStatus: $("kutAiX-summary-status"),
+  kutAiXTopDigits: $("kutAiX-top-digits"),
+  kutAiXBottomDigits: $("kutAiX-bottom-digits"),
+  kutAiXSummaryFactors: $("kutAiX-summary-factors"),
+  kutAiXBarrierInfo: $("kutAiX-barrier-info"),
 
   // Burst Protection + Soft Score
   burstProtectToggle: $("burst-protect-toggle"),
@@ -7997,6 +8067,9 @@ function updateKutAiXStats() {
     window.kutAiX.confirmation = analysis.isConfirmed;
     window.kutAiX.threshold = analysis.digitThreshold;
   }
+
+  // Update digit prediction summary
+  updateDigitPredictionSummary();
 }
 
 /* =========================================================
