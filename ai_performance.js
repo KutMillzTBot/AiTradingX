@@ -1102,3 +1102,235 @@ window.AI = {
 };
 
 console.log("[AI] KUT MILLZ AI Brain loaded with FULL LEARNING CAPABILITIES - Continuous analysis, pattern recognition, and adaptive optimization active!");
+
+// === Digit Prediction Summary Layer Functions ===
+
+// Compute Digit Prediction Summary Layer
+function computeDigitPredictionSummary() {
+  const digits = appState.lastDigits || [];
+  if (digits.length === 0) return null;
+
+  const analysisTicks = Math.min(appState.kutAiX?.analysisTicks ?? 20, digits.length);
+  const recentDigits = digits.slice(-analysisTicks);
+
+  if (recentDigits.length < 5) return null; // Need minimum data for reliable analysis
+
+  // Count occurrences of each digit (0-9)
+  const digitCounts = new Array(10).fill(0);
+  const digitHistory = new Array(10).fill().map(() => []);
+
+  // Track digit sequences and patterns
+  for (let i = 0; i < recentDigits.length; i++) {
+    const digit = recentDigits[i];
+    if (digit >= 0 && digit <= 9) {
+      digitCounts[digit]++;
+      digitHistory[digit].push(i); // Track positions for pattern analysis
+    }
+  }
+
+  // Calculate base probabilities
+  const totalValidDigits = recentDigits.filter(d => d >= 0 && d <= 9).length;
+  const digitProbabilities = digitCounts.map(count => (count / totalValidDigits) * 100);
+
+  // Calculate stability and persistence factors
+  const stabilityScores = new Array(10).fill(0);
+  const persistenceScores = new Array(10).fill(0);
+
+  for (let digit = 0; digit <= 9; digit++) {
+    const history = digitHistory[digit];
+    if (history.length === 0) continue;
+
+    // Stability: How consistent the digit appears (inverse of variance in positions)
+    if (history.length > 1) {
+      const positions = history;
+      const mean = positions.reduce((a, b) => a + b, 0) / positions.length;
+      const variance = positions.reduce((sum, pos) => sum + Math.pow(pos - mean, 2), 0) / positions.length;
+      const stdDev = Math.sqrt(variance);
+      // Lower stdDev = more stable (consistent timing)
+      stabilityScores[digit] = Math.max(0, 100 - (stdDev / analysisTicks) * 200);
+    }
+
+    // Persistence: How recently and frequently the digit has appeared
+    const recentHistory = history.filter(pos => pos >= recentDigits.length - 10); // Last 10 ticks
+    const recencyWeight = recentHistory.length > 0 ? 1 : 0.3;
+    const frequencyWeight = Math.min(history.length / 5, 1); // Cap at 5 occurrences
+    persistenceScores[digit] = (recencyWeight * frequencyWeight) * 100;
+  }
+
+  // Calculate tick behavior and jump filtering
+  const tickBehaviorScores = new Array(10).fill(0);
+  const prices = appState.chart?.closedCandles?.slice(-analysisTicks) || [];
+
+  if (prices.length >= recentDigits.length) {
+    for (let i = 0; i < recentDigits.length; i++) {
+      const digit = recentDigits[i];
+      if (digit >= 0 && digit <= 9 && prices[i]) {
+        const price = prices[i].close;
+        const prevPrice = i > 0 ? prices[i-1].close : price;
+
+        // Calculate tick movement characteristics
+        const tickChange = Math.abs(price - prevPrice);
+        const avgTickChange = prices.slice(0, i+1).reduce((sum, p, idx) => {
+          if (idx === 0) return 0;
+          return sum + Math.abs(p.close - prices[idx-1].close);
+        }, 0) / Math.max(i, 1);
+
+        // Jump filtering: Penalize digits that appear during large jumps (spikes)
+        const jumpFactor = Math.max(0, 1 - (tickChange / (avgTickChange * 2)));
+        tickBehaviorScores[digit] = Math.max(tickBehaviorScores[digit], jumpFactor * 100);
+      }
+    }
+
+    // Average the tick behavior scores
+    for (let digit = 0; digit <= 9; digit++) {
+      if (digitHistory[digit].length > 0) {
+        tickBehaviorScores[digit] = tickBehaviorScores[digit] / digitHistory[digit].length;
+      }
+    }
+  }
+
+  // Get barrier information for CALL/PUT context
+  const barrier = appState.kutMilzAi?.barrier || null;
+  const tradeDirection = appState.currentDirection; // 'CALL' or 'PUT'
+
+  // Combine factors into final probability scores
+  const finalScores = [];
+  for (let digit = 0; digit <= 9; digit++) {
+    const baseProb = digitProbabilities[digit];
+    const stability = stabilityScores[digit];
+    const persistence = persistenceScores[digit];
+    const tickBehavior = tickBehaviorScores[digit] || 50; // Default to neutral
+
+    let combinedScore = (
+      baseProb * 0.4 + // Base probability has some weight
+      stability * 0.3 +
+      persistence * 0.4 +
+      tickBehavior * 0.3
+    );
+
+    // Apply barrier/trade direction adjustments
+    if (barrier !== null && tradeDirection) {
+      const safetyRange = 1; // Digits within 1 of barrier are excluded
+
+      if (tradeDirection === 'CALL') {
+        // CALL favors digits ABOVE barrier
+        if (digit > barrier + safetyRange) {
+          combinedScore *= 1.2; // Boost digits well above barrier
+        } else if (digit <= barrier + safetyRange && digit >= barrier - safetyRange) {
+          combinedScore *= 0.7; // Penalize digits near barrier
+        }
+      } else if (tradeDirection === 'PUT') {
+        // PUT favors digits BELOW barrier
+        if (digit < barrier - safetyRange) {
+          combinedScore *= 1.2; // Boost digits well below barrier
+        } else if (digit <= barrier + safetyRange && digit >= barrier - safetyRange) {
+          combinedScore *= 0.7; // Penalize digits near barrier
+        }
+      }
+    }
+
+    finalScores.push({
+      digit,
+      probability: Math.max(0, Math.min(100, combinedScore)),
+      baseProb,
+      stability,
+      persistence,
+      tickBehavior,
+      occurrences: digitCounts[digit]
+    });
+  }
+
+  // Sort by probability (highest first)
+  finalScores.sort((a, b) => b.probability - a.probability);
+
+  // Calculate overall stability for confidence assessment
+  const overallStability = aiLayer?.rolling?.volStd || 0;
+  const stabilityThreshold = 0.0005; // Configurable threshold
+  const isLowConfidence = overallStability > stabilityThreshold;
+
+  return {
+    digits: finalScores,
+    top3: finalScores.slice(0, 3),
+    bottom3: finalScores.slice(-3),
+    totalAnalyzed: totalValidDigits,
+    overallStability,
+    isLowConfidence,
+    barrier,
+    tradeDirection,
+    analysisTicks
+  };
+}
+
+// Update Digit Prediction Summary UI
+function updateDigitPredictionSummary() {
+  const summary = computeDigitPredictionSummary();
+
+  if (!summary) {
+    // No data available
+    if (dom.kutAiXSummaryStatus) dom.kutAiXSummaryStatus.textContent = 'NO DATA';
+    if (dom.kutAiXSummaryStatus) dom.kutAiXSummaryStatus.className = 'text-xs font-semibold text-slate-500';
+    return;
+  }
+
+  // Update status
+  let statusText, statusClass;
+  if (appState.isEntryInProgress || appState.currentContractId) {
+    statusText = 'LOCKED (TRADE ACTIVE)';
+    statusClass = 'text-xs font-semibold text-orange-400';
+  } else if (summary.isLowConfidence) {
+    statusText = 'LOW CONFIDENCE';
+    statusClass = 'text-xs font-semibold text-red-400';
+  } else {
+    statusText = 'ACTIVE';
+    statusClass = 'text-xs font-semibold text-emerald-400';
+  }
+
+  if (dom.kutAiXSummaryStatus) {
+    dom.kutAiXSummaryStatus.textContent = statusText;
+    dom.kutAiXSummaryStatus.className = statusClass;
+  }
+
+  // Update TOP 3 digits
+  if (dom.kutAiXTopDigits) {
+    const topContainers = dom.kutAiXTopDigits.children;
+    summary.top3.forEach((item, index) => {
+      if (topContainers[index]) {
+        const digitEl = topContainers[index].querySelector('div:first-child');
+        const probEl = topContainers[index].querySelector('div:last-child');
+        if (digitEl) digitEl.textContent = item.digit;
+        if (probEl) probEl.textContent = `${item.probability.toFixed(1)}%`;
+      }
+    });
+  }
+
+  // Update BOTTOM 3 digits
+  if (dom.kutAiXBottomDigits) {
+    const bottomContainers = dom.kutAiXBottomDigits.children;
+    summary.bottom3.forEach((item, index) => {
+      if (bottomContainers[index]) {
+        const digitEl = bottomContainers[index].querySelector('div:first-child');
+        const probEl = bottomContainers[index].querySelector('div:last-child');
+        if (digitEl) digitEl.textContent = item.digit;
+        if (probEl) probEl.textContent = `${item.probability.toFixed(1)}%`;
+      }
+    });
+  }
+
+  // Update barrier information
+  if (dom.kutAiXBarrierInfo) {
+    let barrierText = 'No barrier selected';
+    if (summary.barrier !== null && summary.tradeDirection) {
+      if (summary.tradeDirection === 'CALL') {
+        barrierText = `CALL: Favors digits > ${summary.barrier}`;
+      } else if (summary.tradeDirection === 'PUT') {
+        barrierText = `PUT: Favors digits < ${summary.barrier}`;
+      }
+    }
+    dom.kutAiXBarrierInfo.textContent = barrierText;
+  }
+
+  // Update global kutAiX object
+  if (window.kutAiX) {
+    window.kutAiX.digitPrediction = summary;
+  }
+}
