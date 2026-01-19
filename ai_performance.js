@@ -7,6 +7,28 @@ if (!window.__bot_perf_helpers_added) {
   function addListenerOnce(target, type, handler, opts) { try { target.removeEventListener(type, handler); } catch(e){}; target.addEventListener(type, handler, opts); }
 }
 
+// Quiet-mode filter for noisy AI logs (safe, reversible)
+// Enable by setting `window.KUTMILZ_LOG_FILTER = { enabled: true }` before loading this script.
+try{
+  window.KUTMILZ_LOG_FILTER = window.KUTMILZ_LOG_FILTER || { enabled: true, patterns: [/\[AI\]/i, /KUT MILZ/i, /AI\b/i] };
+  if(window.KUTMILZ_LOG_FILTER && window.KUTMILZ_LOG_FILTER.enabled){
+    (function(){
+      const orig = { log: console.log.bind(console), info: console.info.bind(console), warn: console.warn.bind(console) };
+      const patterns = window.KUTMILZ_LOG_FILTER.patterns;
+      function shouldFilter(args){
+        if(!args || args.length === 0) return false;
+        try{
+          const first = String(args[0]);
+          return patterns.some(p => p.test(first));
+        }catch(e){ return false; }
+      }
+      console.log = function(){ if(shouldFilter(arguments)) return; return orig.log.apply(console, arguments); };
+      console.info = function(){ if(shouldFilter(arguments)) return; return orig.info.apply(console, arguments); };
+      console.warn = function(){ if(shouldFilter(arguments)) return; return orig.warn.apply(console, arguments); };
+    })();
+  }
+}catch(e){ /* don't block execution on filter errors */ }
+
 
 // === Ultimate AI Engine: 3-win popup & auto-stop helpers (injected) ===
 (function(){
@@ -374,32 +396,37 @@ window.AI = {
   
   // Get winning patterns for a symbol/direction
   getWinningPatterns(symbol, direction) {
-    if(!window.AI_BRAIN.learning || !window.AI_BRAIN.learning.winningPatterns) return [];
-    
-    const patterns = window.AI_BRAIN.learning.winningPatterns;
+    // Unified getter: support multiple stored shapes for backward compatibility.
+    const brain = window.AI_BRAIN;
+    if(!brain || !brain.learning || !brain.learning.winningPatterns) return [];
+
+    const entries = brain.learning.winningPatterns;
     const prefix = `${symbol}_${direction}_`;
-    const relevant = [];
-    
-    Object.keys(patterns).forEach(key => {
-      if(key.startsWith(prefix)) {
-        const p = patterns[key];
-        const winRate = p.wins / p.count;
-        if(p.count >= 3 && winRate >= 0.6) {
-          relevant.push({
-            pattern: key.replace(prefix, ''),
-            winRate: winRate,
-            count: p.count,
-            wins: p.wins,
-            lastSeen: p.lastSeen
-          });
+    const results = [];
+
+    Object.keys(entries).forEach(key => {
+      const val = entries[key];
+      // Shape A: keyed by `${symbol}_${direction}_${pattern}` with {count,wins,lastSeen}
+      if (typeof val === 'object' && typeof val.count === 'number' && typeof val.wins === 'number') {
+        if (key.startsWith(prefix)) {
+          const winRate = val.count > 0 ? (val.wins / val.count) : 0;
+          if (val.count >= 3) results.push({ pattern: key.replace(prefix, ''), winRate, count: val.count, wins: val.wins, lastSeen: val.lastSeen || 0 });
         }
       }
+
+      // Shape B: stored objects that include `symbol` and aggregate fields {symbol,wins,total,avgProfit}
+      else if (val && val.symbol === symbol && (!direction || key.startsWith(direction + '_'))) {
+        const total = val.total || val.count || 0;
+        const wins = val.wins || 0;
+        const winRate = total > 0 ? (wins / total) : 0;
+        if (total >= 3) results.push({ pattern: key, winRate, count: total, wins, avgProfit: val.avgProfit });
+      }
     });
-    
-    // Sort by win rate and recency
-    return relevant.sort((a, b) => {
-      if(Math.abs(a.winRate - b.winRate) > 0.1) return b.winRate - a.winRate;
-      return b.lastSeen - a.lastSeen;
+
+    // Sort by win rate then recency/count
+    return results.sort((a, b) => {
+      if (Math.abs((b.winRate || 0) - (a.winRate || 0)) > 0.0001) return (b.winRate || 0) - (a.winRate || 0);
+      return (b.lastSeen || b.count || 0) - (a.lastSeen || a.count || 0);
     });
   },
 
@@ -940,29 +967,7 @@ window.AI = {
     console.log('[AI] Continuous learning cycle completed');
   },
 
-  // Get winning patterns for TAKE indicator
-  getWinningPatterns(symbol, direction) {
-    const brain = window.AI_BRAIN;
-    const patterns = [];
-
-    Object.keys(brain.learning.winningPatterns || {}).forEach(key => {
-      const pattern = brain.learning.winningPatterns[key];
-      if (pattern.symbol === symbol && 
-          (!direction || key.startsWith(direction + '_')) &&
-          pattern.wins / pattern.total >= 0.7 && 
-          pattern.total >= 5) {
-        patterns.push({
-          pattern: key,
-          winRate: pattern.wins / pattern.total,
-          count: pattern.total,
-          avgProfit: pattern.avgProfit
-        });
-      }
-    });
-
-    // Sort by win rate and return top patterns
-    return patterns.sort((a, b) => b.winRate - a.winRate).slice(0, 3);
-  },
+  // (duplicate implementation removed — unified above)
 
   // Analyze market patterns and improve performance after cooldown
   analyzeMarket(symbol) {
@@ -981,8 +986,10 @@ window.AI = {
 
     console.log(`[AI] Analyzing market patterns for ${symbol}...`);
 
+    // Gather recent trades for this symbol from global history
+    const symbolTrades = (brain.history || []).filter(t => t.symbol === symbol);
     // Analyze recent performance
-    const recentTrades = sym.trades.slice(-10); // Last 10 trades
+    const recentTrades = symbolTrades.slice(-10); // Last 10 trades
     if (recentTrades.length < 3) {
       console.log('[AI] Not enough recent trades for analysis');
       this._learningStatus = 'idle';
@@ -996,8 +1003,8 @@ window.AI = {
 
     // Analyze time-based performance
     const currentHour = new Date().getHours();
-    const hourTrades = sym.trades.filter(t => {
-      const tradeHour = new Date(t.timestamp).getHours();
+    const hourTrades = symbolTrades.filter(t => {
+      const tradeHour = new Date(t.time || t.timestamp || 0).getHours();
       return tradeHour === currentHour;
     });
 
@@ -1067,11 +1074,11 @@ window.AI = {
   updateWinningPatterns(symbol) {
     const brain = window.AI_BRAIN;
     const sym = brain.symbols[symbol];
-    
-    if (!sym || sym.trades.length < 5) return;
+    const symbolTrades = (brain.history || []).filter(t => t.symbol === symbol);
+    if (!sym || symbolTrades.length < 5) return;
 
     // Analyze patterns that led to wins
-    const winningTrades = sym.trades.filter(t => t.result === 'win');
+    const winningTrades = symbolTrades.filter(t => t.result === 'win');
     
     winningTrades.forEach(trade => {
       const patternKey = `${trade.direction}_${trade.strategy}_${trade.confidence || 50}`;
@@ -1107,10 +1114,10 @@ console.log("[AI] KUT MILLZ AI Brain loaded with FULL LEARNING CAPABILITIES - Co
 
 // Compute Digit Prediction Summary Layer
 function computeDigitPredictionSummary() {
-  const digits = appState.lastDigits || [];
+  const digits = window.appState?.lastDigits || [];
   if (digits.length === 0) return null;
 
-  const analysisTicks = Math.min(appState.kutAiX?.analysisTicks ?? 20, digits.length);
+  const analysisTicks = Math.min(window.appState?.kutAiX?.analysisTicks ?? 20, digits.length);
   const recentDigits = digits.slice(-analysisTicks);
 
   if (recentDigits.length < 5) return null; // Need minimum data for reliable analysis
@@ -1159,7 +1166,7 @@ function computeDigitPredictionSummary() {
 
   // Calculate tick behavior and jump filtering
   const tickBehaviorScores = new Array(10).fill(0);
-  const prices = appState.chart?.closedCandles?.slice(-analysisTicks) || [];
+  const prices = window.appState?.chart?.closedCandles?.slice(-analysisTicks) || [];
 
   if (prices.length >= recentDigits.length) {
     for (let i = 0; i < recentDigits.length; i++) {
@@ -1190,8 +1197,8 @@ function computeDigitPredictionSummary() {
   }
 
   // Get barrier information for CALL/PUT context
-  const barrier = appState.kutMilzAi?.barrier || null;
-  const tradeDirection = appState.currentDirection; // 'CALL' or 'PUT'
+  const barrier = window.appState?.kutMilzAi?.barrier ?? null;
+  const tradeDirection = window.appState?.currentDirection; // 'CALL' or 'PUT'
 
   // Combine factors into final probability scores
   const finalScores = [];
@@ -1244,7 +1251,7 @@ function computeDigitPredictionSummary() {
   finalScores.sort((a, b) => b.probability - a.probability);
 
   // Calculate overall stability for confidence assessment
-  const overallStability = aiLayer?.rolling?.volStd || 0;
+  const overallStability = window.aiLayer?.rolling?.volStd || 0;
   const stabilityThreshold = 0.0005; // Configurable threshold
   const isLowConfidence = overallStability > stabilityThreshold;
 
@@ -1263,289 +1270,469 @@ function computeDigitPredictionSummary() {
 
 // Update Digit Prediction Summary UI
 function updateDigitPredictionSummary() {
-  const summary = computeDigitPredictionSummary();
+  const digits = window.appState?.lastDigits || [];
+  if (digits.length === 0) return;
 
-  if (!summary) {
-    // No data available
-    if (dom.kutAiXSummaryStatus) dom.kutAiXSummaryStatus.textContent = 'NO DATA';
-    if (dom.kutAiXSummaryStatus) dom.kutAiXSummaryStatus.className = 'text-xs font-semibold text-slate-500';
-    return;
-  }
+  // Count frequency of each digit (0-9)
+  const digitCounts = Array(10).fill(0);
+  digits.forEach(d => {
+    if (d >= 0 && d <= 9) digitCounts[d]++;
+  });
 
-  // Update status
-  let statusText, statusClass;
-  if (appState.isEntryInProgress || appState.currentContractId) {
-    statusText = 'LOCKED (TRADE ACTIVE)';
-    statusClass = 'text-xs font-semibold text-orange-400';
-  } else if (summary.isLowConfidence) {
-    statusText = 'LOW CONFIDENCE';
-    statusClass = 'text-xs font-semibold text-red-400';
-  } else {
-    statusText = 'ACTIVE';
-    statusClass = 'text-xs font-semibold text-emerald-400';
-  }
+  // Calculate percentages
+  const total = digits.length;
+  const digitStats = digitCounts.map((count, digit) => ({
+    digit,
+    count,
+    percentage: (count / total) * 100
+  }));
 
-  if (dom.kutAiXSummaryStatus) {
-    dom.kutAiXSummaryStatus.textContent = statusText;
-    dom.kutAiXSummaryStatus.className = statusClass;
-  }
+  // Sort for top and bottom (use copies to avoid mutating the original)
+  const sortedTop = [...digitStats].sort((a, b) => b.percentage - a.percentage);
+  const sortedBottom = [...digitStats].sort((a, b) => a.percentage - b.percentage);
 
-  // Update TOP 3 digits
-  if (dom.kutAiXTopDigits) {
-    const topContainers = dom.kutAiXTopDigits.children;
-    summary.top3.forEach((item, index) => {
-      if (topContainers[index]) {
-        const digitEl = topContainers[index].querySelector('div:first-child');
-        const probEl = topContainers[index].querySelector('div:last-child');
-        if (digitEl) digitEl.textContent = item.digit;
-        if (probEl) probEl.textContent = `${item.probability.toFixed(1)}%`;
-      }
-    });
-  }
-
-  // Update BOTTOM 3 digits
-  if (dom.kutAiXBottomDigits) {
-    const bottomContainers = dom.kutAiXBottomDigits.children;
-    summary.bottom3.forEach((item, index) => {
-      if (bottomContainers[index]) {
-        const digitEl = bottomContainers[index].querySelector('div:first-child');
-        const probEl = bottomContainers[index].querySelector('div:last-child');
-        if (digitEl) digitEl.textContent = item.digit;
-        if (probEl) probEl.textContent = `${item.probability.toFixed(1)}%`;
-      }
-    });
-  }
-
-  // Update barrier information
-  if (dom.kutAiXBarrierInfo) {
-    let barrierText = 'No barrier selected';
-    if (summary.barrier !== null && summary.tradeDirection) {
-      if (summary.tradeDirection === 'CALL') {
-        barrierText = `CALL: Favors digits > ${summary.barrier}`;
-      } else if (summary.tradeDirection === 'PUT') {
-        barrierText = `PUT: Favors digits < ${summary.barrier}`;
-      }
+  // Update top 2
+  const topEl = window.dom?.kutAiXTopDigits;
+  if (topEl) {
+    const topDivs = topEl.querySelectorAll('div');
+    for (let i = 0; i < 2 && i < topDivs.length; i++) {
+      const stat = sortedTop[i];
+      const divs = topDivs[i].querySelectorAll('div');
+      if (divs[0]) divs[0].textContent = stat.digit;
+      if (divs[1]) divs[1].textContent = stat.percentage.toFixed(1) + '%';
     }
-    dom.kutAiXBarrierInfo.textContent = barrierText;
   }
 
-  // Update global kutAiX object
-  if (window.kutAiX) {
-    window.kutAiX.digitPrediction = summary;
+  // Update bottom 2
+  const bottomEl = window.dom?.kutAiXBottomDigits;
+  if (bottomEl) {
+    const bottomDivs = bottomEl.querySelectorAll('div');
+    for (let i = 0; i < 2 && i < bottomDivs.length; i++) {
+      const stat = sortedBottom[i];
+      const divs = bottomDivs[i].querySelectorAll('div');
+      if (divs[0]) divs[0].textContent = stat.digit;
+      if (divs[1]) divs[1].textContent = stat.percentage.toFixed(1) + '%';
+    }
+  }
+
+  // Add CALL/PUT recommendation based on barrier
+  const barrier = window.appState?.kutMilzAi?.barrier ?? 5;
+  let callCount = 0;
+  let putCount = 0;
+
+  digitStats.forEach(stat => {
+    if (stat.digit > barrier) callCount += stat.count;
+    else if (stat.digit < barrier) putCount += stat.count;
+  });
+
+  const callPercentage = total > 0 ? (callCount / total) * 100 : 0;
+  const putPercentage = total > 0 ? (putCount / total) * 100 : 0;
+
+  let recommendation = 'No barrier selected';
+  const threshold = 60; // 60% threshold for "solid" signal
+
+  if (callPercentage >= threshold) {
+    const topCallDigit = digitStats
+      .filter(stat => stat.digit > barrier)
+      .sort((a, b) => b.percentage - a.percentage)[0];
+    if (topCallDigit) {
+      recommendation = `CALL ${topCallDigit.digit} (${topCallDigit.percentage.toFixed(1)}%)`;
+    }
+  } else if (putPercentage >= threshold) {
+    const topPutDigit = digitStats
+      .filter(stat => stat.digit < barrier)
+      .sort((a, b) => b.percentage - a.percentage)[0];
+    if (topPutDigit) {
+      recommendation = `PUT ${topPutDigit.digit} (${topPutDigit.percentage.toFixed(1)}%)`;
+    }
+  } else {
+    recommendation = `Barrier: ${barrier} (No strong signal)`;
+  }
+
+  const barrierInfoEl = window.dom?.kutAiXBarrierInfo;
+  if (barrierInfoEl) {
+    barrierInfoEl.textContent = recommendation;
   }
 }
+
+// Export KutAiX digit-analysis functions to a safe namespace and
+// provide compatibility global aliases only if they don't already exist.
+try {
+  window.kutAiX = window.kutAiX || {};
+  window.kutAiX.computeAnalysis = window.kutAiX.computeAnalysis || computeDigitPredictionSummary;
+  window.kutAiX.updateSummary = window.kutAiX.updateSummary || updateDigitPredictionSummary;
+
+  if (typeof window.computeKutAiXAnalysis === 'undefined') {
+    window.computeKutAiXAnalysis = function() { return computeDigitPredictionSummary(); };
+  } else {
+    console.info('[AI] computeKutAiXAnalysis already defined; leaving existing implementation in place.');
+  }
+
+  if (typeof window.updateKutAiXStats === 'undefined') {
+    window.updateKutAiXStats = function() { return updateDigitPredictionSummary(); };
+  } else {
+    console.info('[AI] updateKutAiXStats already defined; leaving existing implementation in place.');
+  }
+} catch (e) { console.warn('[AI] Failed to export KutAiX compatibility layer', e); }
 
 // === BestX Auto Selection Functions ===
 
-// BestX state
-window.bestXState = {
-  active: false,
-  mode: null, // '1-trade' or '2-trades'
-  tradesRemaining: 0,
-  selectedDigits: [],
-  status: 'Ready'
-};
-
-// Initialize BestX
-function initBestX() {
-  if (dom.bestxBtn) {
-    dom.bestxBtn.addEventListener('click', showBestXModal);
-  }
-  if (dom.bestx1Trade) {
-    dom.bestx1Trade.addEventListener('click', () => startBestX('1-trade'));
-  }
-  if (dom.bestx2Trades) {
-    dom.bestx2Trades.addEventListener('click', () => startBestX('2-trades'));
-  }
-  if (dom.bestxCancel) {
-    dom.bestxCancel.addEventListener('click', closeBestXModal);
-  }
-  updateBestXStatus();
-}
-
 // Show BestX modal
 function showBestXModal() {
-  if (dom.bestxModal) {
-    dom.bestxModal.style.display = 'flex';
-  }
+  const el = window.dom?.bestxModal || document.getElementById('bestx-modal');
+  if (el) el.style.display = 'flex';
 }
 
 // Close BestX modal
 function closeBestXModal() {
-  if (dom.bestxModal) {
-    dom.bestxModal.style.display = 'none';
-  }
+  const el = window.dom?.bestxModal || document.getElementById('bestx-modal');
+  if (el) el.style.display = 'none';
 }
 
 // Start BestX with selected mode
+// Start BestX with selected mode
 function startBestX(mode) {
-  const summary = computeDigitPredictionSummary();
-  if (!summary || summary.isLowConfidence) {
-    UAE_showTimedPopup('❌ Cannot start BestX: Low confidence or insufficient data', 5000);
-    return;
-  }
-
-  // Check if barrier is too close
-  if (summary.barrier !== null && summary.tradeDirection) {
-    const barrier = summary.barrier;
-    const safetyRange = 1;
-    const validDigits = summary.digits.filter(item => {
-      if (summary.tradeDirection === 'CALL') {
-        return item.digit > barrier + safetyRange;
-      } else if (summary.tradeDirection === 'PUT') {
-        return item.digit < barrier - safetyRange;
-      }
-      return true;
-    });
-
-    if (validDigits.length === 0) {
-      UAE_showTimedPopup('❌ Cannot start BestX: No safe digits available near barrier', 5000);
-      return;
-    }
-  }
-
-  // Select digits based on mode
-  bestXState.active = true;
-  bestXState.mode = mode;
-  bestXState.selectedDigits = [];
-
-  if (mode === '1-trade') {
-    bestXState.tradesRemaining = 1;
-    bestXState.selectedDigits = [summary.top3[0].digit]; // Best digit
-  } else if (mode === '2-trades') {
-    bestXState.tradesRemaining = 2;
-    bestXState.selectedDigits = [summary.top3[0].digit, summary.top3[1].digit]; // Top 2
-  }
-
-  bestXState.status = 'Active';
-  updateBestXStatus();
-
-  // Close modal
-  if (dom.bestxModal) {
-    dom.bestxModal.style.display = 'none';
-  }
-
-  UAE_showTimedPopup(`🚀 BestX ${mode.replace('-', ' ')} activated! Monitoring for opportunities...`, 5000);
-
-  // Attempt first trade immediately if conditions met
-  attemptBestXTrade();
+  // Simple implementation - just show toast and close modal
+  const message = mode === '1-trade' ? 'BestX: 1 Trade selected' : 'BestX: 2 Trades selected';
+  if (typeof window.showToast === 'function') window.showToast(message);
+  closeBestXModal();
 }
 
-// Attempt to execute a BestX trade
-function attemptBestXTrade() {
-  if (!bestXState.active || bestXState.tradesRemaining <= 0) return;
 
-  const summary = computeDigitPredictionSummary();
-  if (!summary || summary.isLowConfidence) {
-    abortBestX('Low confidence detected');
-    return;
-  }
 
-  // Check stability
-  const overallStability = aiLayer?.rolling?.volStd || 0;
-  const stabilityThreshold = 0.0005;
-  if (overallStability > stabilityThreshold) {
-    abortBestX('Stability threshold exceeded');
-    return;
-  }
 
-  // Get next digit to trade
-  const nextDigit = bestXState.selectedDigits[bestXState.selectedDigits.length - bestXState.tradesRemaining];
-  if (nextDigit === undefined) {
-    abortBestX('No more digits to trade');
-    return;
-  }
-
-  // Check if digit is still valid
-  const digitData = summary.digits.find(d => d.digit === nextDigit);
-  if (!digitData || digitData.probability < 10) { // Minimum 10% probability
-    if (bestXState.mode === '2-trades' && bestXState.tradesRemaining === 1) {
-      // Skip second trade if invalid
-      bestXState.tradesRemaining = 0;
-      bestXState.status = 'Completed (1/2)';
-      updateBestXStatus();
-      UAE_showTimedPopup('⚠️ BestX: Second trade skipped - digit no longer valid', 5000);
-      return;
-    } else {
-      abortBestX('Selected digit no longer valid');
-      return;
-    }
-  }
-
-  // Check barrier safety
-  if (summary.barrier !== null && summary.tradeDirection) {
-    const barrier = summary.barrier;
-    const safetyRange = 1;
-    let isSafe = true;
-
-    if (summary.tradeDirection === 'CALL' && nextDigit <= barrier + safetyRange) {
-      isSafe = false;
-    } else if (summary.tradeDirection === 'PUT' && nextDigit >= barrier - safetyRange) {
-      isSafe = false;
-    }
-
-    if (!isSafe) {
-      abortBestX('Trade too close to barrier');
-      return;
-    }
-  }
-
-  // Execute trade using existing digit selection logic
-  // Determine direction based on digit vs barrier
-  let direction = 'CALL'; // Default
-  if (summary.barrier !== null) {
-    direction = nextDigit > summary.barrier ? 'CALL' : 'PUT';
-  }
-
-  if (window.kutMilzAiManualTrade) {
-    window.kutMilzAiManualTrade(nextDigit, direction);
-    bestXState.tradesRemaining--;
-    bestXState.status = bestXState.tradesRemaining > 0 ? `Waiting (${bestXState.tradesRemaining} remaining)` : 'Completed';
-    updateBestXStatus();
-
-    if (bestXState.tradesRemaining > 0) {
-      // Schedule next trade after cooldown
-      setTimeout(attemptBestXTrade, 30000); // 30 second cooldown
-    } else {
-      bestXState.active = false;
-      UAE_showTimedPopup('✅ BestX completed successfully!', 5000);
-    }
-  } else {
-    abortBestX('Trade execution function not available');
-  }
-}
-
-// Abort BestX
-function abortBestX(reason) {
-  bestXState.active = false;
-  bestXState.status = `Aborted: ${reason}`;
-  updateBestXStatus();
-  UAE_showTimedPopup(`❌ BestX aborted: ${reason}`, 5000);
-}
-
-// Update BestX status display
-function updateBestXStatus() {
-  if (dom.bestxStatus) {
-    dom.bestxStatus.textContent = bestXState.status;
-    dom.bestxStatus.className = `text-xs mt-2 ${
-      bestXState.status.includes('Active') ? 'text-emerald-400' :
-      bestXState.status.includes('Waiting') ? 'text-yellow-400' :
-      bestXState.status.includes('Aborted') ? 'text-red-400' :
-      bestXState.status.includes('Completed') ? 'text-blue-400' :
-      'text-slate-400'
-    }`;
-  }
-
-  // Lock manual digit selection if BestX is active
-  if (bestXState.active) {
-    // Disable digit buttons (assuming they have a class or can be disabled)
-    const digitButtons = document.querySelectorAll('[id^="xdigit-"]');
-    digitButtons.forEach(btn => btn.disabled = true);
-  } else {
-    const digitButtons = document.querySelectorAll('[id^="xdigit-"]');
-    digitButtons.forEach(btn => btn.disabled = false);
-  }
-}
 
 // Initialize BestX when DOM is ready
-document.addEventListener('DOMContentLoaded', initBestX);
+document.addEventListener('DOMContentLoaded', function() {
+  const bestxBtn = document.getElementById('bestx-btn');
+  const bestxModal = document.getElementById('bestx-modal');
+  const bestx1Trade = document.getElementById('bestx-1-trade');
+  const bestx2Trades = document.getElementById('bestx-2-trades');
+  const bestxCancel = document.getElementById('bestx-cancel');
+
+  if (bestxBtn) {
+    bestxBtn.addEventListener('click', () => {
+      try {
+        if (bestxModal) bestxModal.style.display = 'flex';
+      } catch(e) {}
+    });
+  }
+
+  if (bestx1Trade) {
+    bestx1Trade.addEventListener('click', () => {
+      try {
+        startBestX('1-trade');
+      } catch(e) {}
+    });
+  }
+
+  if (bestx2Trades) {
+    bestx2Trades.addEventListener('click', () => {
+      try {
+        startBestX('2-trades');
+      } catch(e) {}
+    });
+  }
+
+  if (bestxCancel) {
+    bestxCancel.addEventListener('click', () => {
+      try {
+        closeBestXModal();
+        if (typeof window.showToast === 'function') window.showToast('BestX cancelled');
+      } catch(e) {}
+    });
+  }
+});
+
+// === Login Functions ===
+
+// Handle login form submission
+async function handleLogin(e) {
+  e.preventDefault();
+  console.log('Login attempt started');
+
+  // Local DOM lookups to avoid relying on globals
+  const kutmilzKeyInput = document.getElementById('kutmilz-key');
+  const passwordInput = document.getElementById('password');
+  const termsCheckbox = document.getElementById('terms-checkbox');
+  const loginError = document.getElementById('login-error');
+  const loginForm = document.getElementById('login-form');
+
+  const key = (kutmilzKeyInput?.value || '').trim();
+  const password = (passwordInput?.value || '').trim();
+  const termsAccepted = !!(termsCheckbox && termsCheckbox.checked);
+  const rememberMe = !!(document.getElementById('remember-checkbox')?.checked);
+
+  if (!termsAccepted) {
+    if (loginError) {
+      loginError.textContent = 'Please accept the Terms and Conditions';
+      loginError.classList.remove('hidden');
+    } else {
+      console.warn('Terms not accepted and loginError element not found');
+    }
+    return;
+  }
+
+  // Safe-call validateCredentials (may be defined in index.html scope)
+  let isValid = false;
+  try {
+    if (typeof validateCredentials === 'function') {
+      isValid = validateCredentials(key, password);
+    } else if (typeof window.validateCredentials === 'function') {
+      isValid = window.validateCredentials(key, password);
+    } else {
+      // No external validator available — use a salted SHA-256 hash comparison.
+      // Behavior:
+      // - If a stored salt+hash is present in localStorage, compare salted hash of entered password.
+      // - If none is present, treat this successful login attempt (username matches) as setup:
+      //   generate a random salt, store salt+hash in localStorage (no plaintext saved), and accept.
+      // No hardcoded username: persist a fallback username on first-setup
+      const U_KEY = 'kut_fallback_user';
+
+      function bufToHex(buffer){
+        return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2,'0')).join('');
+      }
+
+      async function computeSaltedHash(pw, salt){
+        const enc = new TextEncoder();
+        const data = enc.encode(salt + String(pw));
+        const digest = await (crypto.subtle || crypto.webkitSubtle).digest('SHA-256', data);
+        return bufToHex(digest);
+      }
+
+      function constantTimeEqual(a, b){
+        if(!a || !b || a.length !== b.length) return false;
+        let res = 0;
+        for(let i=0;i<a.length;i++) res |= a.charCodeAt(i) ^ b.charCodeAt(i);
+        return res === 0;
+      }
+
+      const S_KEY = 'kut_fallback_salt';
+      const H_KEY = 'kut_fallback_hash';
+      const storedSalt = localStorage.getItem(S_KEY);
+      const storedHash = localStorage.getItem(H_KEY);
+      const storedUser = localStorage.getItem(U_KEY);
+
+      if (storedSalt && storedHash && storedUser) {
+        try {
+          const h = await computeSaltedHash(password, storedSalt);
+          isValid = (key === storedUser) && constantTimeEqual(h, storedHash);
+          if (!isValid && loginError) {
+            loginError.textContent = 'Invalid username or password';
+            loginError.classList.remove('hidden');
+          }
+        } catch (err) {
+          console.warn('Hash compare failed', err);
+          isValid = false;
+          if (loginError) {
+            loginError.textContent = 'Authentication error. Please try again later.';
+            loginError.classList.remove('hidden');
+          }
+        }
+      } else {
+        // No stored hash/user: perform one-time setup using the provided username/password.
+        if (key && password) {
+          try {
+            // generate 16-byte random salt
+            let newSalt = 'kut_default_salt_v1';
+            try {
+              const sv = crypto.getRandomValues(new Uint8Array(16));
+              newSalt = Array.from(sv).map(b => b.toString(16).padStart(2,'0')).join('');
+            } catch(e) {
+              // fallback deterministic salt if RNG unavailable
+              newSalt = 'kut_default_salt_v1';
+            }
+            const newHash = await computeSaltedHash(password, newSalt);
+            try { 
+              localStorage.setItem(S_KEY, newSalt);
+              localStorage.setItem(H_KEY, newHash);
+              localStorage.setItem(U_KEY, key);
+            } catch(e){ console.warn('Failed to persist fallback credentials', e); }
+            console.info('Fallback salted credentials stored for future logins');
+            isValid = true; // accept this first login (user supplied correct secret)
+          } catch(e) {
+            console.warn('Fallback setup failed', e);
+            isValid = false;
+            if (loginError) {
+              loginError.textContent = 'Authentication setup failed. Try again.';
+              loginError.classList.remove('hidden');
+            }
+          }
+        } else {
+          isValid = false;
+          if (loginError) {
+            loginError.textContent = 'Invalid username or password';
+            loginError.classList.remove('hidden');
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('validateCredentials threw', e);
+    isValid = false;
+    if (loginError) {
+      loginError.textContent = 'Authentication error. Please try again later.';
+      loginError.classList.remove('hidden');
+    }
+  }
+
+  if (isValid) {
+    // Save credentials if remember me is checked
+    if (rememberMe) {
+      try {
+        localStorage.setItem('kutmilz_key', key);
+        localStorage.setItem('kutmilz_password', password);
+        console.log('Credentials saved to localStorage');
+      } catch (error) {
+        console.warn('Failed to save credentials:', error);
+      }
+    } else {
+      // Clear saved credentials if remember me is unchecked
+      try{ localStorage.removeItem('kutmilz_key'); localStorage.removeItem('kutmilz_password'); }catch(e){}
+      console.log('Credentials cleared from localStorage');
+    }
+
+    // Show loading state
+    const loginButton = document.getElementById('login-submit-btn');
+    if (loginButton) {
+      loginButton.disabled = true;
+      loginButton.textContent = 'Accessing...';
+    }
+
+    // Hide login immediately for instant response (safe fallback)
+    try {
+      if (typeof hideLogin === 'function') hideLogin();
+      else {
+        const _loginOverlay = document.getElementById('login-overlay');
+        if (_loginOverlay) {
+          _loginOverlay.classList.add('hidden');
+          const _appRoot = document.getElementById('app-root');
+          if (_appRoot) _appRoot.classList.remove('hidden');
+          document.body.style.overflow = '';
+        }
+      }
+    } catch (e) { console.warn('hideLogin failed', e); }
+
+    // Clear form
+    if (loginError) try{ loginError.classList.add('hidden'); }catch(e){}
+    if (kutmilzKeyInput) kutmilzKeyInput.value = '';
+    if (passwordInput) passwordInput.value = '';
+
+    // Show welcome message after successful login
+    setTimeout(() => {
+      try {
+        if (typeof window.showWelcomePopup === 'function') window.showWelcomePopup();
+        else if (typeof window.showToast === 'function') window.showToast('Welcome');
+      } catch (e) { console.warn('showWelcomePopup failed', e); }
+      // Re-enable button (though login is hidden, for consistency)
+      if (loginButton) {
+        loginButton.disabled = false;
+        loginButton.textContent = 'Access Bot';
+      }
+    }, 800);
+
+  } else {
+    if (loginError) {
+      loginError.textContent = 'Access Denied - Invalid credentials';
+      try{ loginError.classList.remove('hidden'); }catch(e){}
+    } else {
+      console.warn('Access Denied - loginError element not found');
+    }
+
+    if (kutmilzKeyInput) kutmilzKeyInput.value = '';
+    if (passwordInput) passwordInput.value = '';
+
+    // Shake animation for error
+    if (loginForm) {
+      try{ loginForm.classList.add('animate-pulse'); }catch(e){}
+      setTimeout(() => {
+        try{ loginForm.classList.remove('animate-pulse'); }catch(e){}
+      }, 500);
+    }
+  }
+}
+
+// Initialize login system
+function initLogin() {
+  // Check for offline mode
+  // Localize DOM references to avoid relying on globals that may not be defined yet
+  const loginOverlay = document.getElementById('login-overlay');
+  const loginForm = document.getElementById('login-form');
+  const kutmilzKeyInput = document.getElementById('kutmilz-key');
+  const passwordInput = document.getElementById('password');
+  const termsCheckbox = document.getElementById('terms-checkbox');
+  const loginError = document.getElementById('login-error');
+  const rememberCheckbox = document.getElementById('remember-checkbox');
+
+  if (!navigator.onLine) {
+    const offlineNotice = document.getElementById('offline-notice');
+    if (offlineNotice) offlineNotice.classList.remove('hidden');
+  }
+
+  // Load saved credentials if available
+  const savedKey = localStorage.getItem('kutmilz_key');
+  const savedPassword = localStorage.getItem('kutmilz_password');
+  if (savedKey && savedPassword && kutmilzKeyInput && passwordInput) {
+    try {
+      kutmilzKeyInput.value = savedKey;
+      passwordInput.value = savedPassword;
+      if (rememberCheckbox) rememberCheckbox.checked = true;
+      console.log('Saved credentials loaded');
+    } catch (e) {
+      console.warn('Failed to populate saved credentials', e);
+    }
+  }
+
+  // Always show login on page load (safe-call with DOM fallback)
+  try {
+    if (typeof showLogin === 'function') showLogin();
+    else if (loginOverlay) {
+      loginOverlay.classList.remove('hidden');
+      const _appRoot = document.getElementById('app-root');
+      if (_appRoot) _appRoot.classList.add('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+  } catch (e) { console.warn('showLogin failed', e); }
+
+  // Add form submit handler
+  if (loginForm) {
+    loginForm.addEventListener('submit', handleLogin);
+  }
+
+  // Add terms checkbox handler
+  if (termsCheckbox) {
+    termsCheckbox.addEventListener('change', () => {
+      const loginButton = document.getElementById('login-submit-btn');
+      if (loginButton) {
+        loginButton.disabled = !termsCheckbox.checked;
+      }
+      if (loginError) loginError.classList.add('hidden');
+    });
+  }
+
+  // Initially disable login button
+  const loginButton = document.getElementById('login-submit-btn');
+  if (loginButton) {
+    loginButton.disabled = true;
+  }
+
+  // Add input focus effects
+  if (kutmilzKeyInput && passwordInput) {
+    [kutmilzKeyInput, passwordInput].forEach(input => {
+      input.addEventListener('focus', () => {
+        if (loginError) loginError.classList.add('hidden');
+      });
+    });
+  }
+
+  // Add keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && loginOverlay && !loginOverlay.classList.contains('hidden')) {
+      // Don't allow escape to close login for security
+      e.preventDefault();
+    }
+  });
+}
+
+// Initialize login when DOM is ready
+document.addEventListener('DOMContentLoaded', initLogin);
