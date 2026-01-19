@@ -200,7 +200,12 @@
         console.warn('Failed to load AI performance engine. AI features will be limited.');
         window.AI = null; // Ensure AI is null if script fails
       };
-      document.head.appendChild(script);
+      try {
+        document.head.appendChild(script);
+      } catch (err) {
+        console.warn('Appending AI script to head failed, trying body fallback', err);
+        try { document.body.appendChild(script); } catch (err2) { console.error('Failed to append AI script to body as well', err2); }
+      }
     })();
   </script>
 
@@ -410,6 +415,25 @@
     /* Make toggle track feel softer (visual only) */
     .peer:checked + div{
       box-shadow: var(--glow-rose);
+    }
+    /* Toggle containment fix: ensure knob never leaves the track
+       - Enforce overflow hidden on the track
+       - Use a computed CSS variable `--knob-translate` (px) set by JS
+       - Override Tailwind utility transforms to guarantee containment
+    */
+    label.relative.inline-flex > input[type="checkbox"].sr-only.peer + div{
+      overflow: hidden !important;
+      position: relative !important;
+    }
+    /* Ensure the pseudo-knob uses transform translateX(0) when unchecked */
+    label.relative.inline-flex > input[type="checkbox"].sr-only.peer + div::after{
+      transition: transform 200ms ease-in-out !important;
+      transform: translateX(0px) !important;
+      left: 2px !important;
+    }
+    /* When checked, move the knob exactly by the computed distance */
+    label.relative.inline-flex > input[type="checkbox"].sr-only.peer:checked + div::after{
+      transform: translateX(var(--knob-translate, 0px)) !important;
     }
   
 /* =========================================================
@@ -1340,27 +1364,42 @@ button {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 50;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 25%, #312e81 50%, #1e1b4b 75%, #0f172a 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg,
-    #0f172a 0%,
-    #1e293b 25%,
-    #334155 50%,
-    #1e293b 75%,
-    #0f172a 100%);
-  background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
+  animation: fadeIn 0.6s ease-out;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+#login-overlay::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image:
+    radial-gradient(circle at 25% 25%, rgba(6, 182, 212, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(236, 72, 153, 0.05) 0%, transparent 50%);
+  animation: float 20s ease-in-out infinite;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-10px) rotate(1deg); }
+  66% { transform: translateY(10px) rotate(-1deg); }
 }
 
 #login-overlay.hidden { display: none; }
@@ -1370,21 +1409,25 @@ button {
   z-index: 10;
   width: 100%;
   max-width: 420px;
-  padding: 1rem;
-  margin: 0 auto;
+  padding: 0 1.5rem;
+  animation: slideUp 0.8s ease-out 0.2s both;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .login-card {
-  background: rgba(15, 23, 42, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(30, 41, 59, 0.95);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
   border-radius: 1.5rem;
   box-shadow:
-    0 25px 50px -12px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 25px 50px -12px rgba(0, 0, 0, 0.8),
+    0 0 0 1px rgba(148, 163, 184, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  padding: 2rem;
+  padding: 2.5rem;
   position: relative;
   overflow: hidden;
 }
@@ -1396,7 +1439,7 @@ button {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, #06b6d4, #7c3aed, #06b6d4);
+  background: linear-gradient(90deg, #06b6d4, #7c3aed, #ec4899, #06b6d4);
   background-size: 200% 100%;
   animation: shimmer 3s ease-in-out infinite;
 }
@@ -1406,10 +1449,19 @@ button {
   100% { background-position: 200% 0; }
 }
 
+.login-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.3), transparent);
+}
+
 .login-header {
   text-align: center;
   margin-bottom: 2rem;
-  position: relative;
 }
 
 .login-icon {
@@ -1423,40 +1475,37 @@ button {
   justify-content: center;
   box-shadow: 0 10px 30px rgba(6, 182, 212, 0.3);
   position: relative;
-}
-
-.login-icon::after {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #06b6d4, #7c3aed, #ec4899);
-  z-index: -1;
-  opacity: 0.3;
   animation: pulse 2s ease-in-out infinite;
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); opacity: 0.3; }
-  50% { transform: scale(1.05); opacity: 0.6; }
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.login-icon svg {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: white;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .login-title {
   font-size: 2rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #f6d365 0%, #fda085 50%, #f6d365 100%);
+  background: linear-gradient(135deg, #e2e8f0 0%, #f1f5f9 100%);
   -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   background-clip: text;
-  color: transparent;
   margin-bottom: 0.5rem;
-  text-shadow: 0 2px 10px rgba(246, 211, 101, 0.3);
-  letter-spacing: 0.05em;
+  letter-spacing: -0.025em;
 }
 
 .login-subtitle {
-  color: #cbd5e1;
+  color: #94a3b8;
   font-size: 0.95rem;
-  font-weight: 400;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
 }
 
 .login-form {
@@ -1475,30 +1524,259 @@ button {
   color: #e2e8f0;
   margin-bottom: 0.5rem;
   font-size: 0.9rem;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
 }
 
 .form-input {
   width: 100%;
-  padding: 0.875rem 1rem;
-  background: rgba(51, 65, 85, 0.5);
-  border: 2px solid rgba(71, 85, 105, 0.5);
+  padding: 1rem 1.25rem;
+  background: rgba(51, 65, 85, 0.6);
+  border: 2px solid rgba(71, 85, 105, 0.4);
   border-radius: 0.75rem;
   color: white;
   font-size: 1rem;
-  transition: all 0.3s ease;
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(10px);
+  position: relative;
 }
 
 .form-input:focus {
   outline: none;
   border-color: #06b6d4;
-  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
-  background: rgba(51, 65, 85, 0.7);
+  box-shadow:
+    0 0 0 3px rgba(6, 182, 212, 0.15),
+    0 4px 12px rgba(6, 182, 212, 0.1);
+  background: rgba(51, 65, 85, 0.8);
+  transform: translateY(-1px);
 }
 
 .form-input::placeholder {
-  color: #94a3b8;
+  color: #64748b;
   opacity: 0.8;
+  font-weight: 400;
+}
+
+.login-button {
+  width: 100%;
+  background: linear-gradient(135deg, #06b6d4 0%, #7c3aed 50%, #ec4899 100%);
+  color: white;
+  font-weight: 700;
+  padding: 1rem 2rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  font-size: 1rem;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  box-shadow:
+    0 4px 15px rgba(6, 182, 212, 0.3),
+    0 2px 8px rgba(139, 92, 246, 0.2);
+  margin-top: 1rem;
+}
+
+.login-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.login-button:hover::before {
+  left: 100%;
+}
+
+.login-button:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 25px rgba(6, 182, 212, 0.4),
+    0 4px 12px rgba(139, 92, 246, 0.3),
+    0 2px 8px rgba(236, 72, 153, 0.2);
+}
+
+.login-button:active {
+  transform: translateY(0);
+  transition-duration: 0.1s;
+}
+
+.login-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none;
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid #dc2626; /* Red border for unchecked */
+  border-radius: 0.25rem;
+  background-color: rgba(220, 38, 38, 0.1); /* Light red background */
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+input[type="checkbox"]:checked {
+  background-color: #16a34a; /* Green background for checked */
+  border-color: #16a34a; /* Green border for checked */
+}
+
+input[type="checkbox"]:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+input[type="checkbox"]:hover {
+  transform: scale(1.05);
+}
+
+input[type="checkbox"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.3);
+}
+
+input[type="checkbox"]:checked:focus {
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.3);
+}
+
+/* Offline notice */
+#offline-notice {
+  font-size: 0.8rem;
+  color: #fbbf24;
+  margin-top: 1rem;
+  text-align: center;
+  padding: 0.5rem;
+  background: rgba(245, 158, 11, 0.1);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+/* Enhanced Mobile Responsiveness */
+@media (max-width: 640px) {
+  .login-container {
+    margin: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  .login-card {
+    padding: 2rem;
+    border-radius: 1.25rem;
+  }
+
+  .login-title {
+    font-size: 1.875rem;
+  }
+
+  .login-icon {
+    width: 4.5rem;
+    height: 4.5rem;
+  }
+
+  .form-input {
+    padding: 0.875rem 1rem;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  .login-button {
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    margin: 0.25rem;
+    padding: 0.25rem;
+  }
+
+  .login-card {
+    padding: 1.75rem;
+  }
+
+  .login-title {
+    font-size: 1.75rem;
+  }
+
+  .login-subtitle {
+    font-size: 0.9rem;
+  }
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+  .login-card {
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+  }
+
+  .form-input {
+    appearance: none;
+    -webkit-appearance: none;
+    border-radius: 0.75rem;
+  }
+
+  .login-button {
+    appearance: none;
+    -webkit-appearance: none;
+  }
+}
+
+/* Android specific fixes */
+@supports not (-webkit-touch-callout: none) {
+  .login-card {
+    backdrop-filter: blur(30px);
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .login-card {
+    border: 0.5px solid rgba(148, 163, 184, 0.15);
+  }
+}
+
+/* Loading animation for button */
+.login-button.loading {
+  position: relative;
+  color: transparent;
+}
+
+.login-button.loading::after {
+  content: '';
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  top: 50%;
+  left: 50%;
+  margin-left: -0.5rem;
+  margin-top: -0.5rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .login-button {
@@ -1669,14 +1947,14 @@ button {
 
         <div class="form-group">
           <label class="flex items-center">
-            <input type="checkbox" id="terms-checkbox" class="mr-2 h-4 w-4 text-cyan-600 bg-slate-700 border-slate-600 rounded focus:ring-cyan-500 focus:ring-2">
+            <input type="checkbox" id="terms-checkbox" class="mr-2 h-4 w-4 rounded">
             <span class="text-sm text-slate-300">I agree to the <a href="#" class="text-cyan-400 hover:text-cyan-300 underline" onclick="showTermsAndConditions()">Terms and Conditions</a></span>
           </label>
         </div>
 
         <div class="form-group">
           <label class="flex items-center">
-            <input type="checkbox" id="remember-checkbox" class="mr-2 h-4 w-4 text-cyan-600 bg-slate-700 border-slate-600 rounded focus:ring-cyan-500 focus:ring-2">
+            <input type="checkbox" id="remember-checkbox" class="mr-2 h-4 w-4 rounded">
             <span class="text-sm text-slate-300">Remember my login (stored locally)</span>
           </label>
         </div>
@@ -1791,6 +2069,18 @@ button {
       <!-- Toast container (created dynamically) -->
       <div id="xdigits-toast-container" style="position:fixed;right:16px;bottom:16px;z-index:99999;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none;"></div>
 
+        <!-- BestX Confirm Modal -->
+        <div id="bestx-confirm-modal" style="display:none;position: fixed; inset:0; background: rgba(0,0,0,0.7); z-index: 11000; align-items:center; justify-content:center;" onclick="(e)=>{if(e.target.id==='bestx-confirm-modal')closeBestXConfirmModal();}">
+          <div style="background:#071024;border-radius:10px;padding:18px;max-width:420px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.7);border:1px solid #1f2937;color:#cbd5e1;" onclick="event.stopPropagation()">
+            <h3 style="font-size:18px;margin-bottom:8px;color:#93c5fd;">BestX Confirmation</h3>
+            <p id="bestx-confirm-message" style="font-size:13px;margin-bottom:16px;color:#cbd5e1;">Confirm bestX decision?</p>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+              <button id="bestx-confirm-no" class="px-3 py-2 rounded bg-slate-700 text-white">Cancel</button>
+              <button id="bestx-confirm-yes" class="px-3 py-2 rounded bg-emerald-600 text-white">Confirm</button>
+            </div>
+          </div>
+        </div>
+
 <div class="container-wrapper hidden" id="app-root">
   <h1 class="text-3xl text-center mb-6 brand-title">KUT MILLZ AI</h1>
 
@@ -1868,7 +2158,8 @@ button {
                 <input type="checkbox" id="ai-guard-toggle" class="sr-only peer" checked>
                 <div class="w-11 h-6 bg-slate-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-sky-300 rounded-full peer
                   peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                  after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+                  after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600
+                  peer-checked:after:content-['✓'] peer-checked:after:text-black peer-checked:after:font-bold peer-checked:after:text-xs peer-checked:after:flex peer-checked:after:items-center peer-checked:after:justify-center"></div>
               </label>
             </div>
             <div class="mt-2 text-[11px] text-slate-400">
@@ -2157,7 +2448,8 @@ button {
               <input type="checkbox" id="autoTradingToggle" class="sr-only peer" checked>
               <div class="w-11 h-6 bg-slate-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-sky-300 rounded-full peer
                 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+                after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600
+                peer-checked:after:content-['✓'] peer-checked:after:text-black peer-checked:after:font-bold peer-checked:after:text-xs peer-checked:after:flex peer-checked:after:items-center peer-checked:after:justify-center"></div>
             </label>
           </div>
 
@@ -2174,7 +2466,8 @@ button {
               <input type="checkbox" id="rushXAiToggle" class="sr-only peer">
               <div class="w-11 h-6 bg-slate-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 rounded-full peer
                 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600
+                peer-checked:after:content-['✓'] peer-checked:after:text-black peer-checked:after:font-bold peer-checked:after:text-xs peer-checked:after:flex peer-checked:after:items-center peer-checked:after:justify-center"></div>
             </label>
           </div>
 
@@ -2287,7 +2580,8 @@ button {
                 <input type="checkbox" id="burst-protect-toggle" class="sr-only peer" disabled>
                 <div class="w-11 h-6 bg-slate-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pink-300 rounded-full peer
                   peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                  after:bg-white after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600"></div>
+                  after:bg-white after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600
+                  peer-checked:after:content-['✓'] peer-checked:after:text-black peer-checked:after:font-bold peer-checked:after:text-xs peer-checked:after:flex peer-checked:after:items-center peer-checked:after:justify-center"></div>
               </label>
             </div>
 
@@ -2328,7 +2622,8 @@ button {
                 <input type="checkbox" id="soft-score-toggle" class="sr-only peer" disabled>
                 <div class="w-11 h-6 bg-slate-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pink-300 rounded-full peer
                   peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                  after:bg-white after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600"></div>
+                  after:bg-white after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600
+                  peer-checked:after:content-['✓'] peer-checked:after:text-black peer-checked:after:font-bold peer-checked:after:text-xs peer-checked:after:flex peer-checked:after:items-center peer-checked:after:justify-center"></div>
               </label>
             </div>
 
@@ -2370,7 +2665,8 @@ button {
                 <input type="checkbox" id="accu-toggle" class="sr-only peer">
                 <div class="w-11 h-6 bg-slate-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-sky-300 rounded-full peer
                   peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                  after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+                  after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600
+                  peer-checked:after:content-['✓'] peer-checked:after:text-black peer-checked:after:font-bold peer-checked:after:text-xs peer-checked:after:flex peer-checked:after:items-center peer-checked:after:justify-center"></div>
               </label>
             </div>
 
@@ -2403,7 +2699,8 @@ button {
                   <input type="checkbox" id="accu-safe" class="sr-only peer" checked>
                   <div class="w-11 h-6 bg-slate-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pink-300 rounded-full peer
                     peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                    after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600"></div>
+                    after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600
+                    peer-checked:after:content-['✓'] peer-checked:after:text-black peer-checked:after:font-bold peer-checked:after:text-xs peer-checked:after:flex peer-checked:after:items-center peer-checked:after:justify-center"></div>
                 </label>
               </div>
 
@@ -2425,7 +2722,8 @@ button {
                 <input type="checkbox" id="milzxai-toggle" class="sr-only peer" checked>
                 <div class="w-11 h-6 bg-slate-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer
                   peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                  after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+                  after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600
+                  peer-checked:after:content-['✓'] peer-checked:after:text-black peer-checked:after:font-bold peer-checked:after:text-xs peer-checked:after:flex peer-checked:after:items-center peer-checked:after:justify-center"></div>
               </label>
             </div>
 
@@ -2532,7 +2830,8 @@ button {
               <input type="checkbox" id="safe-mode-toggle" class="sr-only peer" disabled>
               <div class="w-11 h-6 bg-slate-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pink-300 rounded-full peer
                 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600"></div>
+                after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600
+                peer-checked:after:content-['✓'] peer-checked:after:text-black peer-checked:after:font-bold peer-checked:after:text-xs peer-checked:after:flex peer-checked:after:items-center peer-checked:after:justify-center"></div>
             </label>
           </div>
 
@@ -2550,7 +2849,8 @@ button {
               <input type="checkbox" id="price-action-toggle" class="sr-only peer" disabled checked>
               <div class="w-11 h-6 bg-slate-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pink-300 rounded-full peer
                 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600"></div>
+                after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600
+                peer-checked:after:content-['✓'] peer-checked:after:text-black peer-checked:after:font-bold peer-checked:after:text-xs peer-checked:after:flex peer-checked:after:items-center peer-checked:after:justify-center"></div>
             </label>
           </div>
 
@@ -2568,7 +2868,8 @@ button {
               <input type="checkbox" id="chart-assist-toggle" class="sr-only peer" disabled>
               <div class="w-11 h-6 bg-slate-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pink-300 rounded-full peer
                 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600"></div>
+                after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600
+                peer-checked:after:content-['✓'] peer-checked:after:text-black peer-checked:after:font-bold peer-checked:after:text-xs peer-checked:after:flex peer-checked:after:items-center peer-checked:after:justify-center"></div>
             </label>
           </div>
 
@@ -2601,7 +2902,8 @@ button {
               <input type="checkbox" id="mtf-toggle" class="sr-only peer" checked>
               <div class="w-11 h-6 bg-slate-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-300 rounded-full peer
                 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600
+                peer-checked:after:content-['✓'] peer-checked:after:text-black peer-checked:after:font-bold peer-checked:after:text-xs peer-checked:after:flex peer-checked:after:items-center peer-checked:after:justify-center"></div>
             </label>
           </div>
 
@@ -2636,7 +2938,8 @@ button {
               <input type="checkbox" id="autoresume-toggle" class="sr-only peer" disabled checked>
               <div class="w-11 h-6 bg-slate-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pink-300 rounded-full peer
                 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600"></div>
+                after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600
+                peer-checked:after:content-['✓'] peer-checked:after:text-black peer-checked:after:font-bold peer-checked:after:text-xs peer-checked:after:flex peer-checked:after:items-center peer-checked:after:justify-center"></div>
             </label>
           </div>
 
@@ -2650,7 +2953,8 @@ button {
               <input type="checkbox" id="autosell-toggle" class="sr-only peer" disabled checked>
               <div class="w-11 h-6 bg-slate-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pink-300 rounded-full peer
                 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600"></div>
+                after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600
+                peer-checked:after:content-['✓'] peer-checked:after:text-black peer-checked:after:font-bold peer-checked:after:text-xs peer-checked:after:flex peer-checked:after:items-center peer-checked:after:justify-center"></div>
             </label>
           </div>
 
@@ -2666,7 +2970,8 @@ button {
               <input type="checkbox" id="scalp-ind-toggle" class="sr-only peer" disabled>
               <div class="w-11 h-6 bg-slate-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pink-300 rounded-full peer
                 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600"></div>
+                after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600
+                peer-checked:after:content-['✓'] peer-checked:after:text-black peer-checked:after:font-bold peer-checked:after:text-xs peer-checked:after:flex peer-checked:after:items-center peer-checked:after:justify-center"></div>
             </label>
           </div>
 
@@ -2750,7 +3055,8 @@ button {
               <input type="checkbox" id="smart-takeout-toggle" class="sr-only peer" disabled>
               <div class="w-11 h-6 bg-slate-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pink-300 rounded-full peer
                 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                after:bg-white after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600"></div>
+                after:bg-white after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600
+                peer-checked:after:content-['✓'] peer-checked:after:text-black peer-checked:after:font-bold peer-checked:after:text-xs peer-checked:after:flex peer-checked:after:items-center peer-checked:after:justify-center"></div>
             </label>
           </div>
 
@@ -2794,7 +3100,8 @@ button {
               <input type="checkbox" id="tick-ladder-toggle" class="sr-only peer" disabled>
               <div class="w-11 h-6 bg-slate-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pink-300 rounded-full peer
                 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                after:bg-white after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600"></div>
+                after:bg-white after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600
+                peer-checked:after:content-['✓'] peer-checked:after:text-black peer-checked:after:font-bold peer-checked:after:text-xs peer-checked:after:flex peer-checked:after:items-center peer-checked:after:justify-center"></div>
             </label>
           </div>
 
@@ -2851,7 +3158,8 @@ button {
               <input type="checkbox" id="kutMilzAi-toggle" class="sr-only peer" checked disabled>
               <div class="w-11 h-6 bg-slate-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer
                 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600
+                peer-checked:after:content-['✓'] peer-checked:after:text-black peer-checked:after:font-bold peer-checked:after:text-xs peer-checked:after:flex peer-checked:after:items-center peer-checked:after:justify-center"></div>
             </label>
           </div>
 
@@ -2859,7 +3167,7 @@ button {
             <div>
               <label class="text-xs text-slate-400">Barrier (1-9)</label>
               <input id="kutMilzAi-barrier" type="number" min="1" max="9" step="1" value="5"
-                class="w-full mt-1 p-2 bg-slate-800 border border-slate-600 rounded text-slate-100" disabled />
+                class="w-full mt-1 p-2 bg-slate-800 border border-slate-600 rounded text-slate-100" />
             </div>
             <div>
               <label class="text-xs text-slate-400">Confidence Boost %</label>
@@ -2869,7 +3177,7 @@ button {
             <div>
               <label class="text-xs text-slate-400">Lookback (ticks)</label>
               <input id="kutMilzAi-lookback" type="number" min="10" max="200" step="1" value="33"
-                class="w-full mt-1 p-2 bg-slate-800 border border-slate-600 rounded text-slate-100" disabled />
+                class="w-full mt-1 p-2 bg-slate-800 border border-slate-600 rounded text-slate-100" />
             </div>
           </div>
 
@@ -2879,8 +3187,16 @@ button {
               <input id="kutMilzAi-max-digits" type="number" min="20" max="50000" step="10" value="500"
                 class="w-full mt-1 p-2 bg-slate-800 border border-slate-600 rounded text-slate-100" disabled />
             </div>
-            <div></div>
-            <div></div>
+            <div>
+              <label class="text-xs text-slate-400">Min Ticks for Prediction</label>
+              <input id="kutMilzAi-min-ticks" type="number" min="1" max="200" step="1" value="3"
+                class="w-full mt-1 p-2 bg-slate-800 border border-slate-600 rounded text-slate-100" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-400">Max Ticks to Use</label>
+              <input id="kutMilzAi-max-ticks" type="number" min="1" max="50000" step="10" value="50000"
+                class="w-full mt-1 p-2 bg-slate-800 border border-slate-600 rounded text-slate-100" />
+            </div>
           </div>
 
           
@@ -2990,14 +3306,10 @@ button {
             <div id="kutAiX-summary-status" class="text-xs font-semibold text-emerald-400">ANALYZING</div>
           </div>
 
-          <!-- TOP 3 Most Likely Digits -->
+          <!-- TOP 2 Most Likely Digits -->
           <div class="mb-3">
-            <div class="text-xs text-slate-400 mb-2">TOP 3 Most Likely:</div>
-            <div id="kutAiX-top-digits" class="grid grid-cols-3 gap-2">
-              <div class="text-center p-2 bg-slate-700/50 rounded text-sm">
-                <div class="text-cyan-400 font-bold text-lg">--</div>
-                <div class="text-xs text-slate-400">--%</div>
-              </div>
+            <div class="text-xs text-slate-400 mb-2">TOP 2 Most Likely:</div>
+            <div id="kutAiX-top-digits" class="grid grid-cols-2 gap-2">
               <div class="text-center p-2 bg-slate-700/50 rounded text-sm">
                 <div class="text-cyan-400 font-bold text-lg">--</div>
                 <div class="text-xs text-slate-400">--%</div>
@@ -3007,16 +3319,17 @@ button {
                 <div class="text-xs text-slate-400">--%</div>
               </div>
             </div>
+
+              <div class="flex items-center gap-2 mt-2">
+                <button id="kutAiX-populate-sample" class="px-3 py-1 bg-gradient-to-r from-cyan-500 to-purple-600 text-white rounded text-sm">Populate Sample Digits</button>
+                <div class="text-xs text-slate-400">Use this to inject test digits for UI verification.</div>
+              </div>
           </div>
 
-          <!-- BOTTOM 3 Least Likely Digits -->
+          <!-- BOTTOM 2 Least Likely Digits -->
           <div class="mb-3">
-            <div class="text-xs text-slate-400 mb-2">BOTTOM 3 Least Likely:</div>
-            <div id="kutAiX-bottom-digits" class="grid grid-cols-3 gap-2">
-              <div class="text-center p-2 bg-slate-700/50 rounded text-sm">
-                <div class="text-red-400 font-bold text-lg">--</div>
-                <div class="text-xs text-slate-400">--%</div>
-              </div>
+            <div class="text-xs text-slate-400 mb-2">BOTTOM 2 Least Likely:</div>
+            <div id="kutAiX-bottom-digits" class="grid grid-cols-2 gap-2">
               <div class="text-center p-2 bg-slate-700/50 rounded text-sm">
                 <div class="text-red-400 font-bold text-lg">--</div>
                 <div class="text-xs text-slate-400">--%</div>
@@ -4956,6 +5269,8 @@ const dom = {
   kutMilzAiBarrier: $("kutMilzAi-barrier"),
   kutMilzAiLookback: $("kutMilzAi-lookback"),
   kutMilzAiMaxDigits: $("kutMilzAi-max-digits"),
+  kutMilzAiMinTicks: $("kutMilzAi-min-ticks"),
+  kutMilzAiMaxTicks: $("kutMilzAi-max-ticks"),
   kutMilzAiIgnoreSamples: $("kutMilzAi-ignore-samples-btn"),
   kutMilzAiBoost: $("kutMilzAi-boost"),
   kutMilzAiStatus: $("kutMilzAi-status"),
@@ -4997,6 +5312,7 @@ const dom = {
   kutAiXBottomDigits: $("kutAiX-bottom-digits"),
   kutAiXSummaryFactors: $("kutAiX-summary-factors"),
   kutAiXBarrierInfo: $("kutAiX-barrier-info"),
+  kutAiXPopulateSample: $("kutAiX-populate-sample"),
 
   // BestX Auto Selection
   bestxBtn: $("bestx-btn"),
@@ -5161,6 +5477,63 @@ function attachUserEditTracking(){
 }
 attachUserEditTracking();
 window.clearUserEditedInputs = function(){ try{ window._userEditedInputs.clear(); }catch(_){ } };
+
+// Sync barrier/lookback UI into appState so user edits take immediate effect
+function attachKutMilzAiSync(){
+  try{
+    if (!appState.kutMilzAi) appState.kutMilzAi = {};
+    const barrierEl = dom.kutMilzAiBarrier || document.getElementById('kutMilzAi-barrier');
+    const lookbackEl = dom.kutMilzAiLookback || document.getElementById('kutMilzAi-lookback');
+
+    if (barrierEl) {
+      const applyBarrier = ()=>{
+        const v = parseInt(barrierEl.value,10);
+        if (!Number.isNaN(v)) {
+          appState.kutMilzAi.barrier = v;
+          // mark that user set barrier so auto-detect doesn't override
+          appState.kutMilzAi._userSetBarrier = true;
+          try{ updateXdigitsDisplay(); }catch(_){ }
+          try{ updateDigitPredictionSummary(); }catch(_){ }
+        }
+      };
+      barrierEl.addEventListener('input', applyBarrier);
+      barrierEl.addEventListener('change', applyBarrier);
+      applyBarrier();
+    }
+
+    if (lookbackEl) {
+      const applyLookback = ()=>{
+        const v = parseInt(lookbackEl.value,10);
+        if (!Number.isNaN(v)) {
+          appState.kutMilzAi.lookback = v;
+          try{ updateXdigitsDisplay(); }catch(_){ }
+          try{ updateDigitPredictionSummary(); }catch(_){ }
+        }
+      };
+      lookbackEl.addEventListener('input', applyLookback);
+      lookbackEl.addEventListener('change', applyLookback);
+      applyLookback();
+    }
+  }catch(e){ console.warn('attachKutMilzAiSync failed', e); }
+}
+attachKutMilzAiSync();
+// Attach sample populate button
+try{
+  const sampleBtn = dom.kutAiXPopulateSample || document.getElementById('kutAiX-populate-sample');
+  if (sampleBtn){
+    sampleBtn.addEventListener('click', ()=>{
+      try{
+        // non-persistent sample digits array
+        const sample = [1,2,3,4,3,2,1,0,9,8,7,6,5,4,3,2,1,0,9,8,7,6,5,4,3,2,1,0];
+        appState.lastDigits = (appState.lastDigits||[]).concat(sample).slice(-1000);
+        // ensure botRunning flag doesn't matter for summary display
+        updateDigitPredictionSummary();
+        updateXdigitsDisplay();
+        showToast && showToast('Sample digits injected', 2500);
+      }catch(e){ console.warn('populate sample failed', e); }
+    });
+  }
+}catch(_){ }
 
 /* =========================================================
    UI helpers
@@ -5592,24 +5965,34 @@ function updateAIInsights(){
       dom.aiInsightsList.innerHTML = 'No insights available yet. Keep trading to generate learning data!';
     }
 
-    // Update MILZXAI suggestions if available
-    if(window.AI.getBestMarkets && appState.milzxai) {
-      const bestMarkets = window.AI.getBestMarkets(5);
-      if(bestMarkets.length > 0 && dom.aiInsightsList) {
-        dom.aiInsightsList.innerHTML += `<div class="mt-2 text-cyan-300"><strong>MILZXAI Suggestion:</strong> Try these top markets: ${bestMarkets.join(', ')}</div>`;
-      }
+    // Update MILZXAI suggestions if available (run async to avoid blocking UI)
+    if(window.AI && appState.milzxai) {
+      setTimeout(() => {
+        try{
+          if (typeof window.AI.getBestMarkets === 'function'){
+            const bestMarkets = window.AI.getBestMarkets(5) || [];
+            if(bestMarkets.length > 0 && dom.aiInsightsList) {
+              dom.aiInsightsList.innerHTML += `<div class="mt-2 text-cyan-300"><strong>MILZXAI Suggestion:</strong> Try these top markets: ${bestMarkets.join(', ')}</div>`;
+            }
+          }
+        }catch(e){ console.warn('MILZXAI getBestMarkets failed', e); }
+      }, 0);
     }
 
-    // Add sentiment and enhancement insights
-    if(window.AI.getMarketSentiment) {
-      const sentiment = window.AI.getMarketSentiment(appState.symbol);
-      dom.aiInsightsList.innerHTML += `<div class="mt-1 text-green-300"><strong>Market Sentiment:</strong> ${sentiment.trend} (${(sentiment.strength * 100).toFixed(0)}% strength)</div>`;
-    }
-
-    // Add multi-timeframe sentiment if enabled
-    if(window.AI.getMultiTimeframeSentiment && appState.mtfEnabled) {
-      const mtfSentiment = window.AI.getMultiTimeframeSentiment(appState.symbol);
-      dom.aiInsightsList.innerHTML += `<div class="mt-1 text-blue-300"><strong>MTF Confirmation:</strong> ${mtfSentiment.confirmedTrend} (${(mtfSentiment.confidence * 100).toFixed(0)}% confidence)</div>`;
+    // Add sentiment and enhancement insights (async to avoid stalls)
+    if(window.AI) {
+      setTimeout(() => {
+        try{
+          if (typeof window.AI.getMarketSentiment === 'function'){
+            const sentiment = window.AI.getMarketSentiment(appState.symbol) || { trend: 'N/A', strength: 0 };
+            dom.aiInsightsList.innerHTML += `<div class="mt-1 text-green-300"><strong>Market Sentiment:</strong> ${sentiment.trend} (${(sentiment.strength * 100).toFixed(0)}% strength)</div>`;
+          }
+          if (typeof window.AI.getMultiTimeframeSentiment === 'function' && appState.mtfEnabled){
+            const mtfSentiment = window.AI.getMultiTimeframeSentiment(appState.symbol) || { confirmedTrend: 'N/A', confidence: 0 };
+            dom.aiInsightsList.innerHTML += `<div class="mt-1 text-blue-300"><strong>MTF Confirmation:</strong> ${mtfSentiment.confirmedTrend} (${(mtfSentiment.confidence * 100).toFixed(0)}% confidence)</div>`;
+          }
+        }catch(e){ console.warn('MILZXAI sentiment calls failed', e); }
+      }, 0);
     }
 
     if(window.AI.shouldPauseForNews && window.AI.shouldPauseForNews()) {
@@ -5691,8 +6074,15 @@ function updateUI(){
     }
   }
 
-  // Multi-Timeframe Analysis UI
-  if (dom.mtfToggle) dom.mtfToggle.checked = !!appState.mtfEnabled;
+  // Multi-Timeframe Analysis UI - Force visual sync
+  if (dom.mtfToggle) {
+    const shouldBeChecked = !!appState.mtfEnabled;
+    if (dom.mtfToggle.checked !== shouldBeChecked) {
+      dom.mtfToggle.checked = shouldBeChecked;
+      // Force CSS reflow to ensure visual update
+      dom.mtfToggle.offsetHeight;
+    }
+  }
   if (dom.mtfIndicator){
     const on = !!appState.mtfEnabled;
     dom.mtfIndicator.textContent = on ? "ON" : "OFF";
@@ -5825,10 +6215,16 @@ function updateUI(){
     dom.kutMilzAiIndicator.textContent = on ? "ON" : "OFF";
     dom.kutMilzAiIndicator.className = `pill ${on ? "bg-emerald-600" : "bg-red-600"} text-white`;
   }
-  if (dom.kutMilzAiToggle && appState.kutMilzAi){
-    dom.kutMilzAiToggle.checked = !!appState.kutMilzAi.enabled;
+  // KutMilzAi Toggle UI - Force visual sync with underlying state
+  if (dom.kutMilzAiToggle && appState.kutMilzAi) {
+    const shouldBeChecked = !!appState.kutMilzAi.enabled;
+    if (dom.kutMilzAiToggle.checked !== shouldBeChecked) {
+      dom.kutMilzAiToggle.checked = shouldBeChecked;
+      // Force CSS reflow to ensure visual update
+      dom.kutMilzAiToggle.offsetHeight;
+    }
   }
-  setIfNotEditing(dom.kutMilzAiBarrier, String(appState.kutMilzAi?.barrier ?? 5));
+  setIfNotEditing(dom.kutMilzAiBarrier, String(getUserBarrier() ?? 5));
   setIfNotEditing(dom.kutMilzAiLookback, String(appState.kutMilzAi?.lookback ?? 33));
   if (dom.kutMilzAiMaxDigits) setIfNotEditing(dom.kutMilzAiMaxDigits, String(appState.kutMilzAi?.maxDigits ?? 500));
   if (dom.kutMilzAiIgnoreSamples && appState.kutMilzAi) {
@@ -5909,12 +6305,25 @@ function updateUI(){
       : "Smart Take-Out is OFF.";
   }
 
-  // RuShXAi Toggle UI
+  // RuShXAi Toggle UI - Force visual sync with underlying state
   if (dom.rushXAiToggle) {
-    dom.rushXAiToggle.checked = !!appState.rushXAiEnabled;
+    const shouldBeChecked = !!appState.rushXAiEnabled;
+    if (dom.rushXAiToggle.checked !== shouldBeChecked) {
+      dom.rushXAiToggle.checked = shouldBeChecked;
+      // Force CSS reflow to ensure visual update
+      dom.rushXAiToggle.offsetHeight;
+    }
   }
 
-  updateTrendUI();
+  // Auto Trading Toggle UI - Force visual sync with underlying state
+  if (dom.autoTradingToggle) {
+    const shouldBeChecked = !!appState.autoTradingEnabled;
+    if (dom.autoTradingToggle.checked !== shouldBeChecked) {
+      dom.autoTradingToggle.checked = shouldBeChecked;
+      // Force CSS reflow to ensure visual update
+      dom.autoTradingToggle.offsetHeight;
+    }
+  }
 
   if (dom.currentSymbolLabel) dom.currentSymbolLabel.textContent = appState.symbol;
   const effStakeForLabels = getEffectiveStake();
@@ -5949,8 +6358,15 @@ function updateUI(){
   }
 
 
-  // Accumulator UI sync (True ACCU)
-  if (dom.accuToggle && document.activeElement !== dom.accuToggle) dom.accuToggle.checked = !!appState.accu.enabled;
+  // Accumulator UI sync (True ACCU) - Force visual sync
+  if (dom.accuToggle && document.activeElement !== dom.accuToggle) {
+    const shouldBeChecked = !!appState.accu.enabled;
+    if (dom.accuToggle.checked !== shouldBeChecked) {
+      dom.accuToggle.checked = shouldBeChecked;
+      // Force CSS reflow to ensure visual update
+      dom.accuToggle.offsetHeight;
+    }
+  }
   if (dom.accuSettings) dom.accuSettings.style.display = appState.accu.enabled ? "grid" : "none";
   
   // Xdigits Panel visibility (show ONLY when Accumulator is OFF)
@@ -6566,7 +6982,7 @@ function passesPriceActionFilter(direction){
   const last = candles[candles.length - 1];
   const s = paStats(last);
 
-  // 1) Block doji/weak body
+  // 1 Block doji/weak body
   if (s.bodyToRange < cfg.minBody) {
     if (dom.blockReasonDisplay) dom.blockReasonDisplay.textContent = "Price Action: Weak Candle";
     return false;
@@ -6632,7 +7048,7 @@ function updateClustering(price){
     while(appState.lastDigits.length > 50) appState.lastDigits.shift();
   }
 
-  if (appState.lastDigits.length < 5) return;
+  if (appState.lastDigits.length < 3) return;
 
   let sameCount = 0;
   for (let i=1;i<appState.lastDigits.length;i++){
@@ -6656,14 +7072,45 @@ function updateClustering(price){
 /**
  * Update the Xdigits digit stream display with predictions for each digit 1-9
  */
+// Prefer user-selected barrier when available
+function getUserBarrier(){
+  try{
+    // Prefer explicit configured barrier
+    if (appState.kutMilzAi && typeof appState.kutMilzAi.barrier === 'number'){
+      if (appState.kutMilzAi._autoDetectedBarrier) appState.kutMilzAi._autoDetectedBarrier = null;
+      return appState.kutMilzAi.barrier;
+    }
+    // If user control has a value, prefer it
+    const el = document.getElementById('kutMilzAi-barrier');
+    if (el){ const v = Number(el.value); if (!Number.isNaN(v)){ if (appState.kutMilzAi && appState.kutMilzAi._autoDetectedBarrier) appState.kutMilzAi._autoDetectedBarrier = null; return v; } }
+    // Auto-detect barrier from recent digits (median) when explicit not set
+    const digits = appState.lastDigits || [];
+    const lookback = Math.max(5, Number(appState.kutMilzAi?.lookback ?? 20));
+    const slice = digits.slice(-lookback);
+    if (slice.length === 0){ if (appState.kutMilzAi) appState.kutMilzAi._autoDetectedBarrier = null; return null; }
+    const sorted = slice.filter(d=>typeof d==='number').slice().sort((a,b)=>a-b);
+    const mid = Math.floor(sorted.length/2);
+    const median = (sorted.length % 2 === 1) ? sorted[mid] : Math.round((sorted[mid-1]+sorted[mid])/2);
+    if (appState.kutMilzAi) appState.kutMilzAi._autoDetectedBarrier = median;
+    return median;
+  }catch(_){ }
+  return null;
+}
+
 function updateXdigitsDisplay() {
-  const barrier = appState.kutMilzAi?.barrier ?? 5;
+  const barrier = getUserBarrier();
   const digits = appState.lastDigits || [];
   const lookback = appState.kutMilzAi?.lookback ?? 20;
   
   // Update barrier display
   const barrierEl = document.getElementById("xdigits-barrier-value");
-  if (barrierEl) barrierEl.textContent = barrier;
+  if (barrierEl) {
+    if (appState.kutMilzAi && typeof appState.kutMilzAi._autoDetectedBarrier === 'number' && (appState.kutMilzAi?.barrier == null)){
+      barrierEl.textContent = `Auto: ${appState.kutMilzAi._autoDetectedBarrier}`;
+    } else {
+      barrierEl.textContent = (barrier != null) ? barrier : 'No barrier selected';
+    }
+  }
 
   // Update market price display (if present)
   try{
@@ -6701,16 +7148,16 @@ function updateXdigitsDisplay() {
     }catch(_){ }
   }catch(_){ }
   
-  // Check if bot is running - if not, show message
+  // Check if bot is running - if not, show a warning but continue analysis using stored ticks
   if (!appState.isBotRunning) {
     const resultEl = document.getElementById("xdigits-result");
     if (resultEl) {
-      resultEl.innerHTML = "⚠️ Bot is not running. Start the bot to begin analysis.";
-      resultEl.style.backgroundColor = "rgba(239,68,68,0.2)";
+      resultEl.innerHTML = "⚠️ Bot is not running. Using stored ticks for analysis.";
+      resultEl.style.backgroundColor = "rgba(239,68,68,0.06)";
       resultEl.style.borderColor = "#ef4444";
       resultEl.style.color = "#fca5a5";
     }
-    return;
+    // continue: allow updateDigitPredictionSummary() and analysis to run even when bot is stopped
   }
   
   // Get KutMilzAi analysis result
@@ -6731,6 +7178,9 @@ function updateXdigitsDisplay() {
     resultEl.style.borderColor = "#3b82f6";
     resultEl.style.color = "#93c5fd";
   }
+
+  // Refresh digit prediction summary on every tick update
+  try{ updateDigitPredictionSummary(); }catch(e){ /* don't block display */ }
   
   // Update CALL/PUT button labels to show current barrier
   const callBtn = document.getElementById("xdigits-call-btn");
@@ -6812,7 +7262,7 @@ function updateXdigitsDisplay() {
  */
 // Helper: open modal for a clicked digit (computes barrier/prediction)
 window.showDigitModal = function(digit){
-  const barrier = appState.kutMilzAi?.barrier ?? 5;
+  const barrier = getUserBarrier();
   const lookback = appState.kutMilzAi?.lookback ?? 20;
   const digits = appState.lastDigits || [];
   let predictedType = 'NEUTRAL';
@@ -6922,6 +7372,11 @@ function closeXdigitsTradeModal() {
   if (modal) modal.style.display = "none";
 }
 
+function closeBestXModal() {
+  const modal = document.getElementById("bestx-modal");
+  if (modal) modal.style.display = "none";
+}
+
 /**
  * Export current digits statistics and accumulator state as JSON and download file
  * Created file contains two top-level sections: `digits` and `accumulator`.
@@ -6929,7 +7384,7 @@ function closeXdigitsTradeModal() {
 window.exportKutMilzJson = function(){
   try{
     const lookback = appState.kutMilzAi?.lookback ?? 20;
-    const barrier = appState.kutMilzAi?.barrier ?? 5;
+    const barrier = getUserBarrier();
     const digitsArr = appState.lastDigits || [];
     const startIdx = Math.max(0, digitsArr.length - lookback - 1);
 
@@ -6978,7 +7433,7 @@ window.exportKutMilzJsonBoth = function(){
   try{
     const now = new Date();
     const date = now.toISOString().slice(0,10);
-    const barrier = appState.kutMilzAi?.barrier ?? 5;
+    const barrier = getUserBarrier();
     const lookback = appState.kutMilzAi?.lookback ?? 20;
     const digitsArr = appState.lastDigits || [];
 
@@ -7043,7 +7498,12 @@ window.kutMilzAiThresholds = {
 
 function getMarketThreshold(symbol){
   if (!symbol) return 0.35;
-  return window.kutMilzAiThresholds[symbol] ?? 0.35;
+  try{
+    if (window && window.kutMilzAiThresholds && typeof window.kutMilzAiThresholds === 'object'){
+      return (window.kutMilzAiThresholds[symbol] != null) ? window.kutMilzAiThresholds[symbol] : 0.35;
+    }
+  }catch(_){ }
+  return 0.35;
 }
 
 function getDigitCallPct(digit, lookback, barrier){
@@ -7433,6 +7893,107 @@ try{
     const rushxaModal = document.getElementById('rushxa-warning-modal');
     if (rushxaStepBack){ rushxaStepBack.addEventListener('click', ()=>{ try{ if (rushxaModal) rushxaModal.style.display='none'; showToast && showToast('RuShXA Mode cancelled - Good choice!'); }catch(e){} }); }
     if (rushxaProceed){ rushxaProceed.addEventListener('click', ()=>{ try{ appState.rushXAiEnabled = true; const chk = document.getElementById('rushXAiToggle'); if (chk) chk.checked = true; if (rushxaModal) rushxaModal.style.display='none'; logLine("RuShXAi Mode: ON"); if (typeof UAE_showTimedPopup === 'function') { UAE_showTimedPopup('🚀 RuShXA ACTIVATED! AI observation mode engaged. News/event pauses AND time restrictions overridden. Two consecutive losses trigger 120-second cooldown. Remember: high reward = high risk!', 15000); } updateUI(); showToast && showToast('RuShXA Mode enabled - Use with extreme caution!'); }catch(e){} }); }
+
+    // BestX Auto Selection modal wiring
+    const bestxBtn = document.getElementById('bestx-btn');
+    const bestxModal = document.getElementById('bestx-modal');
+    const bestx1Trade = document.getElementById('bestx-1-trade');
+    const bestx2Trades = document.getElementById('bestx-2-trades');
+    const bestxCancel = document.getElementById('bestx-cancel');
+    if (bestxBtn){ bestxBtn.addEventListener('click', ()=>{ try{ if (bestxModal) bestxModal.style.display='flex'; }catch(e){} }); }
+    if (bestx1Trade){ bestx1Trade.addEventListener('click', ()=>{ try{ if (bestxModal) bestxModal.style.display='none'; startBestXSelection(1); }catch(e){} }); }
+    if (bestx2Trades){ bestx2Trades.addEventListener('click', ()=>{ try{ if (bestxModal) bestxModal.style.display='none'; startBestXSelection(2); }catch(e){} }); }
+    if (bestxCancel){ bestxCancel.addEventListener('click', ()=>{ try{ if (bestxModal) bestxModal.style.display='none'; appState.bestx = null; if (dom.bestxStatus) dom.bestxStatus.textContent = 'Cancelled'; showToast && showToast('BestX cancelled'); }catch(e){} }); }
+
+    // BestX selection helpers: collect 20 ticks per decision and execute sequentially for multiple trades
+    function startBestXSelection(count){
+      try{
+        if (!appState) appState = {};
+        const needed = 20;
+        appState.bestx = { requested: count, status: 'pending', neededTicks: needed, lastProcessedLen: (appState.lastDigits||[]).length };
+        if (dom.bestxStatus) dom.bestxStatus.textContent = `Preparing — will collect ${needed} ticks`;
+        // start processing first trade
+        processBestXTrade(0);
+      }catch(e){ console.warn('startBestXSelection failed', e); }
+    }
+
+    function processBestXTrade(idx){
+      try{
+        if (!appState || !appState.bestx) return;
+        const needed = appState.bestx.neededTicks || 20;
+        const startLen = appState.bestx.lastProcessedLen != null ? appState.bestx.lastProcessedLen : (appState.lastDigits||[]).length;
+        if (dom.bestxStatus) dom.bestxStatus.textContent = `Gathering ticks (${startLen}/${needed})`;
+        // poll until we have startLen + needed
+        const iv = setInterval(()=>{
+          const nowLen = (appState.lastDigits||[]).length;
+          const collected = Math.max(0, nowLen - startLen);
+          if (dom.bestxStatus) dom.bestxStatus.textContent = `Gathering ticks (${collected}/${needed})`;
+          if (!appState.bestx || appState.bestx.status === 'cancelled'){ clearInterval(iv); if (dom.bestxStatus) dom.bestxStatus.textContent = 'Cancelled'; return; }
+          if (collected >= needed){ clearInterval(iv); // analyze
+            analyzeAndMaybeExecute(idx);
+          }
+        }, 200);
+      }catch(e){ console.warn('processBestXTrade failed', e); if (dom.bestxStatus) dom.bestxStatus.textContent = 'Error'; }
+    }
+
+    function analyzeAndMaybeExecute(idx){
+      try{
+        const needed = appState.bestx.neededTicks || 20;
+        const digits = (appState.lastDigits||[]).slice(-needed);
+        if (!digits || digits.length < needed){ if (dom.bestxStatus) dom.bestxStatus.textContent = 'Not enough ticks'; showToast && showToast('BestX: not enough ticks'); return; }
+        const counts = Array(10).fill(0);
+        digits.forEach(d=>{ if (typeof d === 'number' && d>=0 && d<=9) counts[d]++; });
+        const stats = counts.map((c,i)=>({digit:i,count:c,perc: (digits.length? (c/digits.length)*100:0)})).sort((a,b)=>b.count - a.count);
+        const top = stats.slice(0,2);
+        appState.bestx.status = 'analyzed';
+        appState.bestx.recommendations = { top };
+        if (dom.bestxStatus) dom.bestxStatus.textContent = `Analyzed — Top: ${top.map(t=>t.digit+'('+t.perc.toFixed(1)+'%)').join(', ')}`;
+        showToast && showToast(`BestX analyzed — Top: ${top[0].digit} (${top[0].perc.toFixed(1)}%)`);
+        // Confirm per trade using in-UI modal
+        function showBestXConfirm(digit, idx, onConfirm, onCancel){
+          try{
+            const modal = document.getElementById('bestx-confirm-modal');
+            const msg = document.getElementById('bestx-confirm-message');
+            const yes = document.getElementById('bestx-confirm-yes');
+            const no = document.getElementById('bestx-confirm-no');
+            if (!modal || !msg || !yes || !no){ // fallback to prompt
+              const ok = (typeof window.confirm === 'function') ? window.confirm(`BestX recommends digit ${digit}. Execute trade ${idx+1} of ${appState.bestx.requested}?`) : false;
+              return ok ? onConfirm() : onCancel();
+            }
+            // set message
+            msg.textContent = `BestX recommends digit ${digit}. Execute trade ${idx+1} of ${appState.bestx.requested}?`;
+            // remove previous handlers
+            yes.replaceWith(yes.cloneNode(true));
+            no.replaceWith(no.cloneNode(true));
+            const yes2 = document.getElementById('bestx-confirm-yes');
+            const no2 = document.getElementById('bestx-confirm-no');
+            yes2.addEventListener('click', ()=>{ try{ hideBestXConfirmModal(); onConfirm(); }catch(e){} });
+            no2.addEventListener('click', ()=>{ try{ hideBestXConfirmModal(); onCancel(); }catch(e){} });
+            modal.style.display = 'flex';
+          }catch(e){ console.warn('showBestXConfirm failed', e); const ok = (typeof window.confirm === 'function') ? window.confirm(`BestX recommends digit ${digit}. Execute trade ${idx+1} of ${appState.bestx.requested}?`) : false; return ok ? onConfirm() : onCancel(); }
+        }
+
+        function hideBestXConfirmModal(){ try{ const m = document.getElementById('bestx-confirm-modal'); if (m) m.style.display = 'none'; }catch(_){ } }
+
+        showBestXConfirm(top[0].digit, idx, ()=>{
+          try{ if (typeof window.kutMilzAiManualTrade === 'function') window.kutMilzAiManualTrade(top[0].digit); }catch(e){ console.warn('BestX execute trade failed', e); }
+          if (dom.bestxStatus) dom.bestxStatus.textContent = `Executed trade ${idx+1}`;
+          // continue flow handled below
+        }, ()=>{
+          if (dom.bestxStatus) dom.bestxStatus.textContent = `Skipped trade ${idx+1}`;
+        });
+        // prepare for next trade if any
+        if (idx + 1 < (appState.bestx.requested || 0)){
+          // set lastProcessedLen to current length, then wait for next needed ticks
+          appState.bestx.lastProcessedLen = (appState.lastDigits||[]).length;
+          if (dom.bestxStatus) dom.bestxStatus.textContent = `Waiting next ${appState.bestx.neededTicks} ticks for trade ${idx+2}`;
+          // small delay to allow UI update
+          setTimeout(()=> processBestXTrade(idx+1), 200);
+        } else {
+          if (dom.bestxStatus) dom.bestxStatus.textContent = 'Done';
+        }
+      }catch(e){ console.warn('analyzeAndMaybeExecute failed', e); if (dom.bestxStatus) dom.bestxStatus.textContent = 'Error'; }
+    }
   });
 }catch(e){}
 
@@ -7730,7 +8291,7 @@ function analyzeKutMilzAi(){
 
   // Strategy 1: ICF X (Digit Threshold)
   function analyzeMilliX() {
-    const barrier = appState.kutMilzAi?.barrier ?? 5;
+    const barrier = getUserBarrier();
     const aboveCount = digits.filter(d => d > barrier).length;
     const percentage = (aboveCount / digits.length) * 100;
 
@@ -8099,6 +8660,152 @@ function updateKutAiXStats() {
 
   // Update digit prediction summary
   updateDigitPredictionSummary();
+}
+
+function updateDigitPredictionSummary() {
+  const digits = appState.lastDigits || [];
+  const statusEl = document.getElementById('kutAiX-summary-status');
+  // Configurable min/max ticks required/used for summary (defaults)
+  const minTicks = Math.max(1, Number((appState.kutMilzAi && typeof appState.kutMilzAi.minTicks !== 'undefined') ? appState.kutMilzAi.minTicks : (dom.kutMilzAiMinTicks ? Number(dom.kutMilzAiMinTicks.value) : 3)));
+  const maxTicks = Math.max(minTicks, Number((appState.kutMilzAi && typeof appState.kutMilzAi.maxTicks !== 'undefined') ? appState.kutMilzAi.maxTicks : (dom.kutMilzAiMaxTicks ? Number(dom.kutMilzAiMaxTicks.value) : 200)));
+
+  // Use only the most recent ticks up to maxTicks for analysis
+  const usedDigits = (digits.length > maxTicks) ? digits.slice(digits.length - maxTicks) : digits.slice();
+
+  // If no usable digits, attempt AI fallback; otherwise compute local stats
+  if (!usedDigits || usedDigits.length === 0) {
+    // Try AI compute fallback
+    if (window.kutAiX && typeof window.kutAiX.computeAnalysis === 'function') {
+      try {
+        const res = window.kutAiX.computeAnalysis();
+        if (res && res.top3 && res.bottom3) {
+          // update top 2
+          const topEl = dom.kutAiXTopDigits || document.getElementById('kutAiX-top-digits');
+          if (topEl) {
+            const topDivs = topEl.querySelectorAll('div');
+            for (let i = 0; i < 2 && i < topDivs.length; i++) {
+              const stat = res.top3[i];
+              const divs = topDivs[i].querySelectorAll('div');
+              if (divs[0]) divs[0].textContent = stat ? stat.digit : '--';
+              if (divs[1]) divs[1].textContent = stat ? stat.probability.toFixed(1) + '%' : '--%';
+            }
+          }
+
+          const bottomEl = dom.kutAiXBottomDigits || document.getElementById('kutAiX-bottom-digits');
+          if (bottomEl) {
+            const bottomDivs = bottomEl.querySelectorAll('div');
+            for (let i = 0; i < 2 && i < bottomDivs.length; i++) {
+              const stat = res.bottom3[i];
+              const divs = bottomDivs[i].querySelectorAll('div');
+              if (divs[0]) divs[0].textContent = stat ? stat.digit : '--';
+              if (divs[1]) divs[1].textContent = stat ? stat.probability.toFixed(1) + '%' : '--%';
+            }
+          }
+
+          // barrier info
+          const barrierInfoEl = dom.kutAiXBarrierInfo || document.getElementById('kutAiX-barrier-info');
+          if (barrierInfoEl) barrierInfoEl.textContent = res.barrier != null ? `Barrier: ${res.barrier}` : 'No barrier';
+          if (statusEl) statusEl.textContent = 'AI';
+          return;
+        }
+      } catch(e) { console.warn('computeAnalysis fallback failed', e); }
+    }
+
+    // Not enough data and no usable fallback — show placeholders
+    if (statusEl) statusEl.textContent = 'NEED MORE DATA';
+    const topElP = dom.kutAiXTopDigits || document.getElementById('kutAiX-top-digits');
+    const bottomElP = dom.kutAiXBottomDigits || document.getElementById('kutAiX-bottom-digits');
+    if (topElP) {
+      const topDivs = topElP.querySelectorAll('div');
+      topDivs.forEach(div => { const ds = div.querySelectorAll('div'); if (ds[0]) ds[0].textContent='--'; if (ds[1]) ds[1].textContent='--%'; });
+    }
+    if (bottomElP) {
+      const bottomDivs = bottomElP.querySelectorAll('div');
+      bottomDivs.forEach(div => { const ds = div.querySelectorAll('div'); if (ds[0]) ds[0].textContent='--'; if (ds[1]) ds[1].textContent='--%'; });
+    }
+    return;
+
+  }
+  // Count frequency of each digit (0-9)
+  const digitCounts = Array(10).fill(0);
+  usedDigits.forEach(d => { if (d >= 0 && d <= 9) digitCounts[d]++; });
+
+  // Calculate percentages
+  const total = usedDigits.length;
+  const digitStats = digitCounts.map((count, digit) => ({ digit, count, percentage: total > 0 ? (count / total) * 100 : 0 }));
+
+  // Sort for top and bottom (use copies to avoid mutating original)
+  const sortedTop = digitStats.slice().sort((a, b) => b.percentage - a.percentage);
+  const sortedBottom = digitStats.slice().sort((a, b) => a.percentage - b.percentage);
+
+  // Update top 2 (use direct children to avoid nested DIV selection issues)
+  if (dom.kutAiXTopDigits) {
+    const topDivs = Array.from(dom.kutAiXTopDigits.children || []);
+    for (let i = 0; i < 2 && i < topDivs.length; i++) {
+      const stat = sortedTop[i] || { digit: '--', percentage: 0 };
+      const divs = Array.from(topDivs[i].querySelectorAll('div'));
+      if (divs[0]) divs[0].textContent = (stat.digit != null) ? stat.digit : '--';
+      if (divs[1]) divs[1].textContent = (stat.percentage != null) ? stat.percentage.toFixed(1) + '%' : '--%';
+    }
+  }
+
+  // Also update a fallback textual summary if present
+  const topTextEl = document.getElementById('kutAiX-top-text');
+  if (topTextEl) topTextEl.textContent = sortedTop.slice(0,2).map(s => s ? `${s.digit} (${s.percentage.toFixed(1)}%)` : '--').join(', ');
+
+  // Update bottom 2 (use direct children)
+  if (dom.kutAiXBottomDigits) {
+    const bottomDivs = Array.from(dom.kutAiXBottomDigits.children || []);
+    for (let i = 0; i < 2 && i < bottomDivs.length; i++) {
+      const stat = sortedBottom[i] || { digit: '--', percentage: 0 };
+      const divs = Array.from(bottomDivs[i].querySelectorAll('div'));
+      if (divs[0]) divs[0].textContent = (stat.digit != null) ? stat.digit : '--';
+      if (divs[1]) divs[1].textContent = (stat.percentage != null) ? stat.percentage.toFixed(1) + '%' : '--%';
+    }
+  }
+
+  const bottomTextEl = document.getElementById('kutAiX-bottom-text');
+  if (bottomTextEl) bottomTextEl.textContent = sortedBottom.slice(0,2).map(s => s ? `${s.digit} (${s.percentage.toFixed(1)}%)` : '--').join(', ');
+
+  // Add CALL/PUT recommendation based on barrier
+  const barrier = getUserBarrier();
+  let callCount = 0;
+  let putCount = 0;
+
+  digitStats.forEach(stat => {
+    if (stat.digit > barrier) callCount += stat.count;
+    else if (stat.digit < barrier) putCount += stat.count;
+  });
+
+  const callPercentage = total > 0 ? (callCount / total) * 100 : 0;
+  const putPercentage = total > 0 ? (putCount / total) * 100 : 0;
+
+  let recommendation = 'No barrier selected';
+  const threshold = 60; // 60% threshold for "solid" signal
+
+  if (callPercentage >= threshold) {
+    const topCallDigit = digitStats
+      .filter(stat => stat.digit > barrier)
+      .sort((a, b) => b.percentage - a.percentage)[0];
+    if (topCallDigit) {
+      recommendation = `CALL ${topCallDigit.digit} (${topCallDigit.percentage.toFixed(1)}%)`;
+    }
+  } else if (putPercentage >= threshold) {
+    const topPutDigit = digitStats
+      .filter(stat => stat.digit < barrier)
+      .sort((a, b) => b.percentage - a.percentage)[0];
+    if (topPutDigit) {
+      recommendation = `PUT ${topPutDigit.digit} (${topPutDigit.percentage.toFixed(1)}%)`;
+    }
+  } else {
+    recommendation = `Barrier: ${barrier} (No strong signal)`;
+  }
+
+  if (dom.kutAiXBarrierInfo) {
+    dom.kutAiXBarrierInfo.textContent = recommendation;
+  }
+  // Mark summary status as local-data when we computed from digits
+  if (statusEl) statusEl.textContent = 'LOCAL';
 }
 
 /* =========================================================
@@ -9365,7 +10072,7 @@ window.kutMilzAiManualTrade = function(typeOrDigit, forcedDirection){
   }
   
   // Get current barrier
-  const barrier = appState.kutMilzAi?.barrier ?? 5;
+  const barrier = getUserBarrier();
   let direction = null;
   let tradeType = "DIGIT";
   
@@ -11223,8 +11930,8 @@ By checking "I agree", you acknowledge you have read and accept these terms.
       // Save credentials if remember me is checked
       if (rememberMe) {
         try {
-          safeSetItem('kutmilz_key', key);
-          safeSetItem('kutmilz_password', password);
+          localStorage.setItem('kutmilz_key', key);
+          localStorage.setItem('kutmilz_password', password);
           console.log('Credentials saved to localStorage');
         } catch (error) {
           console.warn('Failed to save credentials:', error);
@@ -11344,6 +12051,47 @@ By checking "I agree", you acknowledge you have read and accept these terms.
 
   // Logout function removed - login required on every refresh
 })();
+</script>
+
+<script>
+  (function(){
+    // Compute and apply exact knob translation for all label toggles
+    function updateToggles(){
+      document.querySelectorAll('label.relative.inline-flex > input[type="checkbox"].sr-only.peer').forEach(function(input){
+        var track = input.nextElementSibling;
+        if(!track) return;
+        var trackRect = track.getBoundingClientRect();
+        var afterStyle = getComputedStyle(track, '::after');
+        var knobWidth = parseFloat(afterStyle.width) || 0;
+        var left = parseFloat(afterStyle.left) || 0;
+        // translation = track width - knob width - left*2 (keep same left inset both sides)
+        var translate = Math.max(0, Math.round(trackRect.width - knobWidth - (left * 2)));
+        track.style.setProperty('--knob-translate', translate + 'px');
+      });
+    }
+
+    function debounce(fn, wait){
+      var t;
+      return function(){ clearTimeout(t); t = setTimeout(fn, wait); };
+    }
+
+    var debouncedUpdate = debounce(updateToggles, 120);
+    window.addEventListener('resize', debouncedUpdate);
+    window.addEventListener('orientationchange', debouncedUpdate);
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', updateToggles);
+    } else {
+      updateToggles();
+    }
+
+    // Watch for DOM changes that could add toggles or change sizes
+    try {
+      var mo = new MutationObserver(debouncedUpdate);
+      mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
+    } catch (e) {
+      // MutationObserver may be unavailable in some restricted contexts
+    }
+  })();
 </script>
 
 </body>
