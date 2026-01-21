@@ -1270,89 +1270,119 @@ function computeDigitPredictionSummary() {
 
 // Update Digit Prediction Summary UI
 function updateDigitPredictionSummary() {
-  const digits = window.appState?.lastDigits || [];
-  if (digits.length === 0) return;
+  // New Deriv-accurate digit probability logic (rolling window)
+  const lookback = window.appState?.kutMilzAi?.lookback ?? 100;
+  const rawDigits = (window.appState?.lastDigits || []).slice(-lookback);
+  if (!rawDigits || rawDigits.length === 0) return;
 
-  // Count frequency of each digit (0-9)
+  // Count frequency of each digit (0-9) in rolling window
+  const total = rawDigits.length;
   const digitCounts = Array(10).fill(0);
-  digits.forEach(d => {
-    if (d >= 0 && d <= 9) digitCounts[d]++;
+  rawDigits.forEach(d => { if (d >= 0 && d <= 9) digitCounts[d]++; });
+
+  // Base percentages (do NOT normalize relative to highest digit)
+  const basePercentages = digitCounts.map(count => (count / total) * 100);
+
+  // Apply a light price-influence nudge (but do NOT allow directional bias or momentum gating)
+  const priceInfluenceEl = document.getElementById('xdigits-price-influence');
+  const configuredPriceInfluence = priceInfluenceEl ? parseFloat(priceInfluenceEl.value) : (window.appState?.kutMilzAi?.priceInfluence ?? 5);
+  const priceInfluence = Number.isFinite(configuredPriceInfluence) ? configuredPriceInfluence : 5;
+
+  // Nudge only the most recent digit slightly (20% of configured influence)
+  const lastDigit = rawDigits[rawDigits.length - 1];
+  const nudgeAmount = priceInfluence * 0.2; // e.g. 5% -> 1% nudge
+
+  const maxDisplay = window.appState?.kutMilzAi?.maxDigitProbability ?? 20; // percent cap
+  const minDisplay = 5; // floor percent
+
+  const displayedPercentages = basePercentages.map((p, digit) => {
+    let v = p;
+    if (digit === lastDigit) v = v + nudgeAmount;
+    // enforce hard cap and floor
+    if (v > maxDisplay) v = maxDisplay;
+    if (v < minDisplay) v = minDisplay;
+    return v;
   });
 
-  // Calculate percentages
-  const total = digits.length;
-  const digitStats = digitCounts.map((count, digit) => ({
-    digit,
-    count,
-    percentage: (count / total) * 100
-  }));
-
-  // Sort for top and bottom (use copies to avoid mutating the original)
-  const sortedTop = [...digitStats].sort((a, b) => b.percentage - a.percentage);
-  const sortedBottom = [...digitStats].sort((a, b) => a.percentage - b.percentage);
-
-  // Update top 2
-  const topEl = window.dom?.kutAiXTopDigits;
-  if (topEl) {
-    const topDivs = topEl.querySelectorAll('div');
-    for (let i = 0; i < 2 && i < topDivs.length; i++) {
-      const stat = sortedTop[i];
-      const divs = topDivs[i].querySelectorAll('div');
-      if (divs[0]) divs[0].textContent = stat.digit;
-      if (divs[1]) divs[1].textContent = stat.percentage.toFixed(1) + '%';
+  // Update UI per-digit without changing any internal probabilities or accumulator state
+  for (let d = 0; d <= 9; d++) {
+    const el = document.getElementById(`xdigit-${d}-pred`);
+    if (el) {
+      el.textContent = displayedPercentages[d].toFixed(1) + '%';
+      el.dataset.displayPercent = String(displayedPercentages[d]);
+    }
+    // ensure the digit button has a small container for the last-digit icon
+    const btn = document.getElementById(`xdigit-${d}`);
+    if (btn) {
+      // create overlay element if missing
+      try{
+        if (!btn.querySelector('.xdigit-last-icon')) {
+          const span = document.createElement('span');
+          span.className = 'xdigit-last-icon';
+          span.textContent = '💰';
+          if (!btn.style.position) btn.style.position = 'relative';
+          btn.appendChild(span);
+        }
+      }catch(_){ }
     }
   }
 
-  // Update bottom 2
-  const bottomEl = window.dom?.kutAiXBottomDigits;
-  if (bottomEl) {
-    const bottomDivs = bottomEl.querySelectorAll('div');
-    for (let i = 0; i < 2 && i < bottomDivs.length; i++) {
-      const stat = sortedBottom[i];
-      const divs = bottomDivs[i].querySelectorAll('div');
-      if (divs[0]) divs[0].textContent = stat.digit;
-      if (divs[1]) divs[1].textContent = stat.percentage.toFixed(1) + '%';
+  // Last Digit Highlight (UI only) — always show the icon for the most recent tick digit
+  try {
+    if (typeof lastDigit === 'number') {
+      // hide all first
+      for (let d = 0; d <= 9; d++) {
+        const btn = document.getElementById(`xdigit-${d}`);
+        if (!btn) continue;
+        const ico = btn.querySelector('.xdigit-last-icon');
+        if (!ico) continue;
+        if (d === lastDigit) {
+          ico.classList.add('show');
+        } else {
+          ico.classList.remove('show');
+        }
+      }
     }
-  }
+  } catch (e) { /* swallow UI-only errors */ }
 
-  // Add CALL/PUT recommendation based on barrier
-  const barrier = window.appState?.kutMilzAi?.barrier ?? 5;
-  let callCount = 0;
-  let putCount = 0;
+  // Update KutAiX summary UI (top/bottom digits, summary status)
+  try{
+    const topEl = document.getElementById('kutAiX-top-digits');
+    const bottomEl = document.getElementById('kutAiX-bottom-digits');
+    const statusEl = document.getElementById('kutAiX-summary-status');
+    const predEl = document.getElementById('kutAiX-prediction');
+    const confEl = document.getElementById('kutAiX-confidence');
+    const lastDigitEl = document.getElementById('kutAiX-last-digit');
 
-  digitStats.forEach(stat => {
-    if (stat.digit > barrier) callCount += stat.count;
-    else if (stat.digit < barrier) putCount += stat.count;
-  });
+    // Build digit stats array for UI summary
+    const stats = displayedPercentages.map((p,d)=>({ digit:d, pct:p, count: digitCounts[d] }));
+    const sortedTop = [...stats].sort((a,b)=>b.pct - a.pct);
+    const sortedBottom = [...stats].sort((a,b)=>a.pct - b.pct);
 
-  const callPercentage = total > 0 ? (callCount / total) * 100 : 0;
-  const putPercentage = total > 0 ? (putCount / total) * 100 : 0;
-
-  let recommendation = 'No barrier selected';
-  const threshold = 60; // 60% threshold for "solid" signal
-
-  if (callPercentage >= threshold) {
-    const topCallDigit = digitStats
-      .filter(stat => stat.digit > barrier)
-      .sort((a, b) => b.percentage - a.percentage)[0];
-    if (topCallDigit) {
-      recommendation = `CALL ${topCallDigit.digit} (${topCallDigit.percentage.toFixed(1)}%)`;
+    if (topEl){
+      topEl.innerHTML = '';
+      for(let i=0;i<2 && i<sortedTop.length;i++){
+        const s = sortedTop[i];
+        const div = document.createElement('div');
+        div.innerHTML = `<div style="font-weight:700">${s.digit}</div><div style="font-size:12px;color:#cbd5e1">${s.pct.toFixed(1)}%</div>`;
+        topEl.appendChild(div);
+      }
     }
-  } else if (putPercentage >= threshold) {
-    const topPutDigit = digitStats
-      .filter(stat => stat.digit < barrier)
-      .sort((a, b) => b.percentage - a.percentage)[0];
-    if (topPutDigit) {
-      recommendation = `PUT ${topPutDigit.digit} (${topPutDigit.percentage.toFixed(1)}%)`;
+    if (bottomEl){
+      bottomEl.innerHTML = '';
+      for(let i=0;i<2 && i<sortedBottom.length;i++){
+        const s = sortedBottom[i];
+        const div = document.createElement('div');
+        div.innerHTML = `<div style="font-weight:700">${s.digit}</div><div style="font-size:12px;color:#cbd5e1">${s.pct.toFixed(1)}%</div>`;
+        bottomEl.appendChild(div);
+      }
     }
-  } else {
-    recommendation = `Barrier: ${barrier} (No strong signal)`;
-  }
 
-  const barrierInfoEl = window.dom?.kutAiXBarrierInfo;
-  if (barrierInfoEl) {
-    barrierInfoEl.textContent = recommendation;
-  }
+    if (statusEl) statusEl.textContent = 'LOCAL';
+    if (predEl) predEl.textContent = 'Digits Only';
+    if (confEl) confEl.textContent = `${total} ticks | Window ${lookback}`;
+    if (lastDigitEl) lastDigitEl.textContent = typeof lastDigit === 'number' ? String(lastDigit) : '--';
+  }catch(_){ }
 }
 
 // Export KutAiX digit-analysis functions to a safe namespace and
