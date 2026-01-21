@@ -189,38 +189,41 @@
       }
     ]
   },
-  "history": [
-    {
-      "symbol": "R_100",
-      "result": "win",
-      "stake": 2.5,
-      "payout": 4.75,
-      "direction": "CALL",
-      "strategy": "MOMENTUM",
-      "confidence": 0.72,
-      "time": 1736476800000
-    },
-    {
-      "symbol": "BOOM1000",
-      "result": "win",
-      "stake": 3.0,
-      "payout": 5.5,
-      "direction": "PUT",
-      "strategy": "BREAKOUT",
-      "confidence": 0.58,
-      "time": 1736476800000
-    },
-    {
-      "symbol": "R_50",
-      "result": "loss",
-      "stake": 1.8,
-      "payout": 0,
-      "direction": "CALL",
-      "strategy": "MOMENTUM",
-      "confidence": 0.45,
-      "time": 1736476800000
-    }
-  ],
+  "history": {
+    "digits": [
+      {
+        "symbol": "R_100",
+        "result": "win",
+        "stake": 2.5,
+        "payout": 4.75,
+        "direction": "CALL",
+        "strategy": "MOMENTUM",
+        "confidence": 0.72,
+        "time": 1736476800000
+      },
+      {
+        "symbol": "BOOM1000",
+        "result": "win",
+        "stake": 3.0,
+        "payout": 5.5,
+        "direction": "PUT",
+        "strategy": "BREAKOUT",
+        "confidence": 0.58,
+        "time": 1736476800000
+      },
+      {
+        "symbol": "R_50",
+        "result": "loss",
+        "stake": 1.8,
+        "payout": 0,
+        "direction": "CALL",
+        "strategy": "MOMENTUM",
+        "confidence": 0.45,
+        "time": 1736476800000
+      }
+    ],
+    "accu": []
+  },
   "digitPrediction": {
     "enabled": true,
     "analysisTicks": 20,
