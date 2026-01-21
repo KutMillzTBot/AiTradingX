@@ -69,13 +69,55 @@
   visibility: hidden;
   transition: opacity 0.4s ease-in, visibility 0.4s ease-in;
 }
-
 .container-wrapper:not(.hidden) {
   opacity: 1;
   visibility: visible;
 }
   .brand-title { font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; background: linear-gradient(90deg, #f6d365 0%, #fda085 35%, #f6d365 70%, #ffd700 100%); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: 0 10px 30px rgba(124,58,237,0.18); }
   </style>
+
+<script>
+// Highlight helpers: apply and clear a non-animated white ring around a digit button
+function applyConfirmedHighlightForDigit(digit){
+  try{
+    clearConfirmedHighlight();
+    const el = document.getElementById(`xdigit-${digit}`);
+    if (el) el.classList.add('kutAix-win-highlight');
+    appState._currentHighlightedDigit = digit;
+  }catch(e){/* ignore */}
+}
+
+function clearConfirmedHighlight(){
+  try{
+    const prev = document.querySelectorAll('.kutAix-win-highlight');
+    prev.forEach(p=>p.classList.remove('kutAix-win-highlight'));
+    appState._currentHighlightedDigit = null;
+  }catch(e){/* ignore */}
+}
+
+// When a confirmed price is set, try to highlight its last digit only after ticks settle.
+function maybeApplyHighlightFromConfirmed(){
+  try{
+    const cp = appState.kutMilzAi && appState.kutMilzAi.confirmedPrice;
+    if (!cp || typeof cp.price === 'undefined') return;
+    const priceStr = String(cp.price || '0');
+    const lastChar = priceStr.replace(/\D/g,'').slice(-1) || '0';
+    const lastNum = parseInt(lastChar,10) || 0;
+    const lastTickAt = appState.lastTickAt || 0;
+    const now = Date.now();
+    if ((now - lastTickAt) >= 500){
+      applyConfirmedHighlightForDigit(lastNum);
+    } else {
+      const expected = lastTickAt;
+      setTimeout(()=>{
+        if ((appState.lastTickAt || 0) === expected){
+          applyConfirmedHighlightForDigit(lastNum);
+        }
+      }, 600);
+    }
+  }catch(e){/* ignore */}
+}
+</script>
 
   <style>
   /* Responsive adjustments for Xdigits panel and modal (mobile/desktop) */
@@ -131,6 +173,9 @@
   /* Last-digit indicator overlay (subtle, non-blocking) */
   .xdigit-last-icon{ position: absolute; top: 4px; right: 6px; font-size: 12px; line-height: 1; opacity: 0; transition: opacity 260ms ease; pointer-events: auto; }
   .xdigit-last-icon.show{ opacity: 1; }
+  
+  /* Non-animated white ring used to indicate confirmed winning digit */
+  .kutAix-win-highlight { box-shadow: 0 0 0 3px rgba(255,255,255,0.95) inset; border-radius: 10px !important; transition: none !important; outline: 0 !important; }
   </style>
 
   <style>
@@ -3505,7 +3550,7 @@ input[type="checkbox"]:checked:focus {
           </div>
           <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
             <label class="text-xs text-slate-400" style="min-width:120px">Price Influence %</label>
-            <input id="xdigits-price-influence" type="number" min="0" max="100" step="5" value="5" style="width:80px;padding:6px;border-radius:6px;background:#071327;color:#cbd5e1;border:1px solid #213547" />
+            <input id="xdigits-price-influence" type="number" min="0" max="100" step="5" value="0" style="width:80px;padding:6px;border-radius:6px;background:#071327;color:#cbd5e1;border:1px solid #213547" />
             <div class="text-xs text-slate-400">(uses recent price momentum to nudge bias)</div>
           </div>
           <!-- Signal Tuning -->
@@ -3576,16 +3621,16 @@ input[type="checkbox"]:checked:focus {
             <label for="xdigits-digits-watch" class="text-xs text-slate-400" style="min-width:120px">Digits to Watch</label>
             <select id="xdigits-digits-watch" style="padding:6px;border-radius:6px;background:#0b1220;color:#cbd5e1;border:1px solid #334155">
               <option value="auto">Auto (sync with Barrier)</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
-              <option value="6">6</option>
-              <option value="7">7</option>
-              <option value="8">8</option>
-              <option value="9">9</option>
-              <option value="10">10</option>
+              <option value="all" selected>All (0-9)</option>
+              <option value="1">Top 1</option>
+              <option value="2">Top 2</option>
+              <option value="3">Top 3</option>
+              <option value="4">Top 4</option>
+              <option value="5">Top 5</option>
+              <option value="6">Top 6</option>
+              <option value="7">Top 7</option>
+              <option value="8">Top 8</option>
+              <option value="9">Top 9</option>
             </select>
           </div>
 
@@ -3807,7 +3852,7 @@ window.showToast = function(message, timeout){
     return el;
   }catch(e){ console.error(e); }
 };
-  console.log(line);
+  console.debug(line);
   if (LOG){
     LOG.textContent = (LOG.textContent ? (LOG.textContent + "\n") : "") + line;
     LOG.scrollTop = LOG.scrollHeight;
@@ -3819,7 +3864,7 @@ window.showToast = function(message, timeout){
 function txLogLine(msg){
   const t = new Date().toLocaleTimeString();
   const line = `[${t}] ${msg}`;
-  console.log("TX:", line);
+  console.debug("TX:", line);
   if (TXLOG){
     TXLOG.textContent = (TXLOG.textContent ? (TXLOG.textContent + "\n") : "") + line;
     TXLOG.scrollTop = TXLOG.scrollHeight;
@@ -3962,7 +4007,7 @@ autoTradingEnabled:true,
     barrier:5,              // Digit threshold for ICF X strategy (1-9)
     confidenceBoost:30,     // Percentage boost to add to confidence score (0-100)
     lookback:100,           // Number of ticks to use for per-digit stats (rolling window default)
-    priceInfluence:5,       // Price influence % (used only to nudge display)
+    priceInfluence:0,       // Price influence % (used only to nudge display)
     confidenceThreshold:13, // UI confidence threshold for last-digit indicator
     maxDigitProbability:20, // hard cap for displayed percent
     // RAW mode: when true, digit probabilities are computed purely from raw tick counts
@@ -3981,6 +4026,9 @@ autoTradingEnabled:true,
     digitThreshold:5,       // Digit threshold for analysis (0-9)
     confidenceFilter:0,     // Minimum confidence percentage (0-100)
     intelligentBarrier:true // Enable intelligent barrier adjustment
+    ,
+    // per-market rolling windows for last digits
+    windows: {}
   },
 
   // Burst Protection (optional): stand down briefly during tick-volatility bursts (best for Vol 1s)
@@ -5797,7 +5845,7 @@ function initChart() {
     });
     resizeObserver.observe(chartContainer);
 
-    console.log('Chart initialized successfully');
+    console.debug('Chart initialized successfully');
 
   } catch (error) {
     console.error('Failed to initialize chart:', error);
@@ -7182,6 +7230,7 @@ function updateXdigitsDisplay() {
           logLine('Auto-confirmed market price: ' + (sym || '') + ' ' + p);
           // Update Money Bag indicator (only from confirmed price)
           try{ updateLastTickIndicator(); }catch(_){ }
+          try{ maybeApplyHighlightFromConfirmed(); }catch(_){ }
         }
       }
     }catch(_){ }
@@ -7243,23 +7292,28 @@ function updateXdigitsDisplay() {
   const aboveBarrier = recentSlice.filter(d => d > barrier).length;
   const belowBarrier = recentSlice.filter(d => d <= barrier).length;
 
-  // For each digit 0-9, show raw probability = occurrences / total_window * 100
-  for (let digit = 0; digit <= 9; digit++) {
-    const predEl = document.getElementById(`xdigit-${digit}-pred`);
-    const btnEl = document.getElementById(`xdigit-${digit}`);
-    if (!predEl || !btnEl) continue;
+  // Use per-market KutAiX window when available for selected market
+  try{
+    const selectedMarket = appState.symbol || (document.getElementById('xdigits-market-options')?.value) || null;
+    const analysisTicks = Math.max(1, Math.min(100, Number(appState.kutAiX?.analysisTicks || 20)));
+    const marketWindow = selectedMarket && appState.kutAiX && appState.kutAiX.windows && Array.isArray(appState.kutAiX.windows[selectedMarket]) ? appState.kutAiX.windows[selectedMarket].slice(-analysisTicks) : recentSlice.slice(-analysisTicks);
 
-    // Compute raw frequency over the recentSlice rolling window
-    const occ = recentSlice.filter(d => d === digit).length;
-    const totalWindow = recentSlice.length || 1;
-    const rawPct = (occ / totalWindow) * 100;
+    for (let digit = 0; digit <= 9; digit++) {
+      const predEl = document.getElementById(`xdigit-${digit}-pred`);
+      const btnEl = document.getElementById(`xdigit-${digit}`);
+      if (!predEl || !btnEl) continue;
 
-    // Store exact raw value for other consumers and display as-is (no clamping, no smoothing)
-    predEl.dataset.displayPercent = String(rawPct);
-    predEl.textContent = rawPct.toFixed(2) + '%';
-    predEl.style.cursor = 'pointer';
-    predEl.onclick = () => showDigitModal(digit);
-  }
+      const occ = marketWindow.filter(d => d === digit).length;
+      const totalWindow = marketWindow.length || 0;
+      const rawPct = totalWindow > 0 ? (occ / totalWindow) * 100 : 0;
+
+      predEl.dataset.rawCount = String(occ);
+      predEl.dataset.displayPercent = String(rawPct);
+      predEl.textContent = `${occ} (${rawPct.toFixed(2)}%)`;
+      predEl.style.cursor = 'pointer';
+      predEl.onclick = () => showDigitModal(digit);
+    }
+  }catch(e){ /* ignore panel update errors */ }
 
   // Update KutAiX stats after digit processing
   updateKutAiXStats();
@@ -7330,6 +7384,136 @@ function updateLastTickIndicator(){
       }
     }catch(e){ console.error('recent strip render', e); }
   }catch(e){ console.error('updateLastTickIndicator', e); }
+}
+
+// Render KutAiX digit panel for a specific market (raw counts + percent over fixed 20-tick window)
+function updateKutAiXDigitPanel(market){
+  try{
+    if (!market) market = appState.symbol || document.getElementById('xdigits-market-options')?.value;
+    const panel = document.getElementById('kutAix-report');
+    if (!panel) return;
+    const analysisTicks = Math.max(1, Math.min(100, Number(appState.kutAiX?.analysisTicks || 20)));
+    const w = (appState.kutAiX && appState.kutAiX.windows && Array.isArray(appState.kutAiX.windows[market])) ? appState.kutAiX.windows[market].slice(-analysisTicks) : [];
+
+    // Count digits 0..9
+    const counts = Array.from({length:10},()=>0);
+    for (const d of w) if (typeof d === 'number' && d >=0 && d <=9) counts[d]++;
+
+    // Use raw total ticks for percentage calculation
+    const total = w.length || 0;
+    let out = `KutAiX - ${market} (last ${total} ticks)\n`;
+    for (let d=0; d<=9; d++){
+      const cnt = counts[d] || 0;
+      const pct = total > 0 ? (cnt / total) * 100 : 0;
+      out += `${d}: ${cnt} (${pct.toFixed(2)}%)\n`;
+    }
+    panel.textContent = out;
+  }catch(e){ console.error('updateKutAiXDigitPanel', e); }
+}
+
+// Fetch recent ticks history for a market and convert to last-digit array, then invoke cb(array)
+function fetchInitialTicksHistoryForMarket(market, count, cb){
+  try{
+    if (!market) return cb([]);
+    const MAX_ATTEMPTS = 2; // total attempts
+    const TIMEOUT_MS = 6000; // 6s timeout per attempt
+    let attempt = 0;
+
+    const attemptFetch = ()=>{
+      attempt++;
+      let settled = false;
+      let ws = null;
+      const onDone = (arr)=>{
+        if (settled) return; settled = true;
+        try{ cb(Array.isArray(arr)?arr:[]); }catch(_){ }
+        try{ if (ws && ws.readyState === WebSocket.OPEN) ws.close(); }catch(_){ }
+      };
+      const tm = setTimeout(()=>{
+        try{ if (!settled){ if (ws && ws.readyState === WebSocket.OPEN) try{ ws.close(); }catch(_){ } }
+        }catch(_){ }
+        if (!settled){
+          if (attempt < MAX_ATTEMPTS) setTimeout(attemptFetch, 500);
+          else onDone([]);
+        }
+      }, TIMEOUT_MS);
+
+      try{
+        ws = new WebSocket(API_URL);
+      }catch(e){ clearTimeout(tm); if (attempt < MAX_ATTEMPTS) return setTimeout(attemptFetch,500); else return onDone([]); }
+
+      ws.addEventListener('open', ()=>{
+        try{
+          const req = { "ticks_history": market, "count": Math.max(1, Math.min(100, Number(count||20))), "end": "latest" };
+          ws.send(JSON.stringify(req));
+        }catch(e){ clearTimeout(tm); if (attempt < MAX_ATTEMPTS) setTimeout(attemptFetch,500); else onDone([]); }
+      });
+
+      ws.addEventListener('message', (ev)=>{
+        try{
+          const res = JSON.parse(ev.data);
+          if (!res) return;
+          const h = res.history || res;
+          let prices = [];
+          if (h){
+            // Normalize a variety of history response shapes into a prices[] of numbers
+            let raw = [];
+            if (Array.isArray(h.prices)) raw = h.prices.slice(-count);
+            else if (Array.isArray(h)) raw = h.slice(-count);
+            else if (Array.isArray(h.candles)) raw = h.candles.map(c=>c.close).slice(-count);
+            else if (Array.isArray(h.history)) raw = h.history.slice(-count);
+            else if (Array.isArray(h)) raw = h.slice(-count);
+            else if (typeof h === 'string') raw = h.split('\n').map(s=>s.trim()).filter(Boolean).slice(-count);
+            // Extract numeric price from each item
+            const extractPrice = (it)=>{
+              try{
+                if (it == null) return null;
+                if (typeof it === 'number') return it;
+                if (typeof it === 'string'){
+                  const n = Number(it);
+                  if (!Number.isNaN(n)) return n;
+                }
+                if (typeof it === 'object'){
+                  if (it.quote != null) return Number(it.quote);
+                  if (it.price != null) return Number(it.price);
+                  if (it.close != null) return Number(it.close);
+                  if (it.ask != null) return Number(it.ask);
+                  if (it.bid != null) return Number(it.bid);
+                  if (it[0] != null) return Number(it[0]);
+                }
+              }catch(e){ }
+              return null;
+            };
+            prices = raw.map(extractPrice).filter(p=>Number.isFinite(p)).slice(-count);
+          }
+          const digits = prices.map(p=>{
+            try{
+              const priceStr = String(p || '0');
+              const lastChar = priceStr.replace(/\D/g,'').slice(-1) || '0';
+              return parseInt(lastChar,10) || 0;
+            }catch(e){ return 0; }
+          }).filter(x=>typeof x === 'number');
+          clearTimeout(tm);
+          onDone(digits);
+        }catch(e){ /* ignore parse errors */ }
+      });
+
+      ws.addEventListener('error', ()=>{
+        clearTimeout(tm);
+        try{ if (ws && ws.readyState === WebSocket.OPEN) ws.close(); }catch(_){ }
+        if (attempt < MAX_ATTEMPTS) setTimeout(attemptFetch,500); else onDone([]);
+      });
+
+      ws.addEventListener('close', ()=>{
+        // if closed before settled and we still have attempts left, retry
+        if (!settled && attempt < MAX_ATTEMPTS){
+          clearTimeout(tm);
+          setTimeout(attemptFetch, 500);
+        }
+      });
+    };
+
+    attemptFetch();
+  }catch(e){ try{ cb([]); }catch(_){ } }
 }
 
 /**
@@ -7610,12 +7794,16 @@ function computeAndUpdateBias(){
     // honor 'watchMatchesBarrier' flag if user requested
     const watchMatchesBarrier = !!(appState.kutMilzAi && appState.kutMilzAi.watchMatchesBarrier);
     if (sel && sel.value !== 'auto'){
-      const n = Math.max(1, Math.min(10, Number(sel.value)));
-      // choose top-n digits by occurrences in lookback
-      const counts = [];
-      for(let d=0; d<=9; d++){ const s = getDigitCallPct(d, lookback, barrier); counts.push({d,occ:s.occurrences}); }
-      counts.sort((a,b)=>b.occ - a.occ);
-      digitsToWatch = counts.slice(0,n).map(x=>x.d);
+      if (sel.value === 'all'){
+        digitsToWatch = Array.from({length:10},(_,i)=>i);
+      } else {
+        const n = Math.max(1, Math.min(10, Number(sel.value)));
+        // choose top-n digits by occurrences in lookback
+        const counts = [];
+        for(let d=0; d<=9; d++){ const s = getDigitCallPct(d, lookback, barrier); counts.push({d,occ:s.occurrences}); }
+        counts.sort((a,b)=>b.occ - a.occ);
+        digitsToWatch = counts.slice(0,n).map(x=>x.d);
+      }
     } else {
       // Auto: sync with Barrier logic -> watch digits greater than barrier (CALL-prone) and lower ones
       // We'll pick nearest 5 digits centered on barrier when possible
@@ -7904,6 +8092,7 @@ try{
         if (confirmedEl) confirmedEl.textContent = `Confirmed: ${p.toFixed(5)} @ ${new Date().toLocaleTimeString()}`;
         logLine('Market price confirmed: ' + (appState.kutMilzAi.confirmedPrice.symbol || '') + ' ' + p);
         try{ updateLastTickIndicator(); }catch(_){ }
+        try{ maybeApplyHighlightFromConfirmed(); }catch(_){ }
       }catch(e){ console.error(e); }
     });
     if (autoBtn){
@@ -7917,6 +8106,67 @@ try{
         }catch(e){ console.error(e); }
       });
     }
+    // Sync Price Influence UI control with appState and persist changes
+    try{
+      const priceInput = document.getElementById('xdigits-price-influence');
+      if (!appState.kutMilzAi) appState.kutMilzAi = {};
+      if (priceInput){
+        // initialize appState from UI (ensures default reflects UI value)
+        appState.kutMilzAi.priceInfluence = Number(priceInput.value) || 0;
+        priceInput.addEventListener('change', ()=>{
+          try{
+            appState.kutMilzAi.priceInfluence = Number(priceInput.value) || 0;
+            computeAndUpdateBias();
+            updateXdigitsDisplay();
+          }catch(e){ console.error('price-influence change handler', e); }
+        });
+      }
+    }catch(e){ console.error('price-influence sync failed', e); }
+    // KutAiX controls wiring: Analysis Tick Count, Digit Threshold, Confidence Filter, Intelligent Barrier
+    try{
+      if (!appState.kutAiX) appState.kutAiX = {};
+      const aiTicksEl = document.getElementById('kutAiX-analysis-ticks');
+      const threshEl = document.getElementById('kutAiX-digit-threshold');
+      const confEl = document.getElementById('kutAiX-confidence-filter');
+      const intelBtn = document.getElementById('kutAiX-intelligent-barrier-btn');
+      // Initialize defaults from UI if not present
+      appState.kutAiX.analysisTicks = Number(appState.kutAiX.analysisTicks || (aiTicksEl ? Number(aiTicksEl.value) : 20));
+      appState.kutAiX.confidenceFilter = Number(appState.kutAiX.confidenceFilter || (confEl ? Number(confEl.value) : 0));
+      appState.kutAiX.intelligentBarrier = (typeof appState.kutAiX.intelligentBarrier === 'boolean') ? appState.kutAiX.intelligentBarrier : true;
+      // Apply button text
+      if (intelBtn) intelBtn.textContent = appState.kutAiX.intelligentBarrier ? 'AUTO' : 'MANUAL';
+      // Wire events
+      if (aiTicksEl){ aiTicksEl.addEventListener('change', ()=>{ try{ appState.kutAiX.analysisTicks = Math.max(1, Math.min(100, Number(aiTicksEl.value)||20)); updateKutAiXDigitPanel(appState.symbol || document.getElementById('xdigits-market-options')?.value); updateXdigitsDisplay(); }catch(_){ } }); }
+      if (confEl){ confEl.addEventListener('change', ()=>{ try{ appState.kutAiX.confidenceFilter = Math.max(0, Math.min(100, Number(confEl.value)||0)); updateKutAiXStats(); updateDigitPredictionSummary(); }catch(_){ } }); }
+      if (threshEl){ threshEl.addEventListener('change', ()=>{ try{ if (!appState.kutMilzAi) appState.kutMilzAi = {}; const v = Number(threshEl.value); if (!Number.isNaN(v)){ appState.kutMilzAi.barrier = Math.max(0, Math.min(9, parseInt(v,10))); appState.kutMilzAi._manualBarrier = true; updateXdigitsDisplay(); updateKutAiXDigitPanel(appState.symbol || document.getElementById('xdigits-market-options')?.value); } }catch(_){ } }); }
+      if (intelBtn){ intelBtn.addEventListener('click', ()=>{ try{ appState.kutAiX.intelligentBarrier = !appState.kutAiX.intelligentBarrier; intelBtn.textContent = appState.kutAiX.intelligentBarrier ? 'AUTO' : 'MANUAL'; if (appState.kutAiX.intelligentBarrier){ if (appState.kutMilzAi) delete appState.kutMilzAi.barrier; } else { if (threshEl){ appState.kutMilzAi = appState.kutMilzAi||{}; appState.kutMilzAi.barrier = Number(threshEl.value)||0; appState.kutMilzAi._manualBarrier = true; } } updateXdigitsDisplay(); }catch(_){ } }); }
+    }catch(e){ console.error('KutAiX control wiring failed', e); }
+    // Re-seed KutAiX when the user changes selected market (only while bot is running)
+    try{
+      const marketSelectEl = document.getElementById('xdigits-market-options');
+      if (marketSelectEl){
+        marketSelectEl.addEventListener('change', ()=>{
+          try{
+            // Only fetch history when the bot is running — otherwise we seed at bot start
+            if (!appState.isBotRunning) return;
+            const newMarket = marketSelectEl.value || appState.symbol || null;
+            if (!newMarket) return;
+            const need = Math.max(1, Math.min(100, Number(appState.kutAiX?.analysisTicks || 20)));
+            if (!appState.kutAiX) appState.kutAiX = { windows:{} };
+            // clear any previous window for a fresh seed
+            appState.kutAiX.windows[newMarket] = [];
+            fetchInitialTicksHistoryForMarket(newMarket, need, (arr)=>{
+              try{
+                appState.kutAiX.windows[newMarket] = (Array.isArray(arr) ? arr.slice(-need) : []);
+                try{ updateKutAiXDigitPanel(newMarket); }catch(_){ }
+                try{ updateXdigitsDisplay(); }catch(_){ }
+                try{ logLine && logLine('KutAiX re-seeded for ' + newMarket); }catch(_){ }
+              }catch(_){ }
+            });
+          }catch(e){ console.error('market change reseed', e); }
+        });
+      }
+    }catch(e){ console.error('market-select reseed wiring failed', e); }
   });
 }catch(e){ console.error(e); }
 
@@ -8592,13 +8842,17 @@ function updateConfidenceUI(){
 // Compute KutAiX digit analysis
 function computeKutAiXAnalysis() {
   // Implement KutAiX single-source-of-truth rules (barrier-based raw frequency engine)
-  const digits = Array.isArray(appState.lastDigits) ? appState.lastDigits : [];
+  // Prefer per-market KutAiX window if available (seeded at start), otherwise global lastDigits
+  const selectedMarket = appState.symbol || (document.getElementById('xdigits-market-options')?.value) || null;
+  const useWindow = selectedMarket && appState.kutAiX && Array.isArray(appState.kutAiX.windows && appState.kutAiX.windows[selectedMarket]);
+  const digits = useWindow ? (appState.kutAiX.windows[selectedMarket].slice()) : (Array.isArray(appState.lastDigits) ? appState.lastDigits : []);
   // Active barrier from user or auto-detection
   const barrier = getUserBarrier();
   if (barrier === null || typeof barrier === 'undefined') return null;
 
   const lookback = Number.isFinite(Number(appState.kutMilzAi?.lookback)) ? Number(appState.kutMilzAi.lookback) : 100;
   const allowSmall = !!appState.kutMilzAi?.allowSmallSamples;
+  const confFilter = Math.max(0, Math.min(100, Number(appState.kutAiX?.confidenceFilter || 0)));
 
   const recentDigits = digits.slice(-Math.max(1, lookback));
   const totalDigits = recentDigits.length;
@@ -8627,7 +8881,8 @@ function computeKutAiXAnalysis() {
   const bias = dominant === 'OVER' ? `Bias toward digits > ${barrier}` : `Bias toward digits ≤ ${barrier}`;
 
   // isConfirmed: true when we have at least one sample (caller can decide thresholds)
-  const isConfirmed = totalDigits > 0;
+  // Respect confidence filter: only mark confirmed if dominant percentage meets filter
+  const isConfirmed = totalDigits > 0 && (confFilter <= 0 || dominantPct >= confFilter);
 
   return {
     totalDigits,
@@ -8690,7 +8945,24 @@ function updateKutAiXStats() {
 
   // Update analysis
   const analysis = computeKutAiXAnalysis();
-  if (!analysis) return;
+  if (!analysis) {
+    // If analysis not available or not meeting confidence, reflect NO-TRADE
+    if (dom.kutAiXPrediction) dom.kutAiXPrediction.textContent = `Prediction: NO-DATA`;
+    if (dom.kutAiXConfidence) dom.kutAiXConfidence.textContent = `Confidence: 0%`;
+    return;
+  }
+  // Ensure analysis only runs when we have the configured number of ticks (20)
+  try{
+    const selectedMarket = appState.symbol || (document.getElementById('xdigits-market-options')?.value) || null;
+    const required = Number(appState.kutAiX?.analysisTicks || 20);
+    const currentLen = selectedMarket && appState.kutAiX && Array.isArray(appState.kutAiX.windows && appState.kutAiX.windows[selectedMarket]) ? appState.kutAiX.windows[selectedMarket].length : (appState.lastDigits||[]).length;
+    if (currentLen < required){
+      // Not ready: reflect status and bail out
+      if (dom.kutAiXPrediction) dom.kutAiXPrediction.textContent = `Prediction: WARMUP (${currentLen}/${required})`;
+      if (dom.kutAiXConfidence) dom.kutAiXConfidence.textContent = `Confidence: 0%`;
+      return;
+    }
+  }catch(e){ /* ignore readiness check errors */ }
 
   // Update threshold analysis bars and stats
   if (dom.kutAiXAboveBar) dom.kutAiXAboveBar.style.width = `${analysis.abovePct}%`;
@@ -8865,8 +9137,11 @@ function updateDigitPredictionSummary() {
       return;
     }
 
-    // We have analysis; use it to populate both summary and prediction outputs
-    const usedDigits = (appState.lastDigits || []).slice(- (appState.kutAiX?.analysisTicks ?? 20));
+    // We have analysis; use per-market window when available (seeded), otherwise fallback to global lastDigits
+    const selectedMarket = appState.symbol || (document.getElementById('xdigits-market-options')?.value) || null;
+    const analysisTicks = Math.max(1, Math.min(100, Number(appState.kutAiX?.analysisTicks || 20)));
+    const marketWindow = selectedMarket && appState.kutAiX && Array.isArray(appState.kutAiX.windows && appState.kutAiX.windows[selectedMarket]) ? appState.kutAiX.windows[selectedMarket].slice(-analysisTicks) : (appState.lastDigits || []).slice(-analysisTicks);
+    const usedDigits = marketWindow.slice();
     // Build digit stats for top/bottom displays
     const digitCounts = Array(10).fill(0);
     usedDigits.forEach(d => { if (d >= 0 && d <= 9) digitCounts[d]++; });
@@ -9062,30 +9337,80 @@ function startBot(){
   appState.isBotRunning = true;
   logLine("Bot started - trading active.");
   updateUI();
+
   // If Xdigits (KutMilzAi) is active and user selected a market in MARKET OPTIONS,
   // apply that market selection automatically when the bot starts.
+  let autoSelectedMarket = null;
   try{
     if (appState.kutMilzAi && appState.kutMilzAi.enabled){
       const marketSel = document.getElementById('xdigits-market-options');
       if (marketSel && marketSel.value){
         setSymbol(marketSel.value);
+        autoSelectedMarket = marketSel.value;
         logLine(`Xdigits market auto-selected: ${marketSel.value}`);
       }
     }
   }catch(_){ }
-  // If API is already connected/authenticated, start subscribing to ticks now
-  if (appState.isApiConnected && appState.isAuthenticated){
-    try{ subscribeTicks(appState.symbol); }catch(_){ }
-  }
 
-  // Start continuous AI learning
-  if (window.AI && window.AI.startContinuousLearning) {
-    window.AI.startContinuousLearning();
-    logLine("AI continuous learning activated");
-    if (typeof UAE_showTimedPopup === 'function') {
-      UAE_showTimedPopup('🤖 AI Continuous Learning Activated: Bot will analyze and improve performance automatically.', 5000);
+  // Continuation: subscribe to ticks and start AI learning after optional seeding
+  const continueStart = ()=>{
+    // If API is already connected/authenticated, start subscribing to ticks now
+    if (appState.isApiConnected && appState.isAuthenticated){
+      try{ subscribeTicks(appState.symbol); }catch(_){ }
     }
-  }
+
+    // Start continuous AI learning
+    if (window.AI && window.AI.startContinuousLearning) {
+      window.AI.startContinuousLearning();
+      logLine("AI continuous learning activated");
+      if (typeof UAE_showTimedPopup === 'function') {
+        UAE_showTimedPopup('🤖 AI Continuous Learning Activated: Bot will analyze and improve performance automatically.', 5000);
+      }
+    }
+  };
+
+  // If we auto-selected a market, seed its KutAiX window from history first,
+  // then continue to subscribe and start AI. Otherwise continue immediately.
+  try{
+    const sel = autoSelectedMarket || appState.symbol || document.getElementById('xdigits-market-options')?.value || null;
+    if (sel && appState.kutMilzAi && appState.kutMilzAi.enabled){
+      // Enforce exact 20-tick rolling window at start as per audit requirements
+      const need = 20;
+      if (!appState.kutAiX) appState.kutAiX = { windows: {}, analysisTicks: need };
+      appState.kutAiX.analysisTicks = need;
+      if (!appState.kutMilzAi) appState.kutMilzAi = {};
+      appState.kutMilzAi.minTicks = need; // require 20 ticks before analysis
+
+      // Fetch initial history up to 20 ticks, seed window, then subscribe and wait until we have 20 ticks before starting analysis
+      fetchInitialTicksHistoryForMarket(sel, need, (arr)=>{
+        try{
+          appState.kutAiX.windows[sel] = Array.isArray(arr) ? arr.slice(-need) : [];
+          try{ updateKutAiXDigitPanel(sel); }catch(_){ }
+          try{ updateXdigitsDisplay(); }catch(_){ }
+        }catch(_){ }
+
+        // Start subscribing immediately so live ticks can fill any missing ticks
+        try{ if (appState.isApiConnected && appState.isAuthenticated) subscribeTicks(appState.symbol); }catch(_){ }
+
+        // Wait until window has 'need' ticks or timeout, then continue
+        const startTime = Date.now();
+        const timeoutMs = 15000; // 15s
+        const checkInterval = 200;
+        const checker = setInterval(()=>{
+          const len = (appState.kutAiX.windows[sel] || []).length;
+          if (len >= need || (Date.now() - startTime) >= timeoutMs){
+            clearInterval(checker);
+            if (len < need) logLine(`Warning: KutAiX seed for ${sel} only has ${len}/${need} ticks; proceeding with available data.`);
+            try{ updateKutAiXDigitPanel(sel); }catch(_){ }
+            try{ updateXdigitsDisplay(); }catch(_){ }
+            continueStart();
+          }
+        }, checkInterval);
+      });
+    }else{
+      continueStart();
+    }
+  }catch(e){ console.error('startBot reseed', e); continueStart(); }
 }
 
 function subscribeTicks(symbol){
@@ -9272,6 +9597,31 @@ function handleResponse(res){
       }
 
       appState.lastTick = price;
+      appState.lastTickAt = Date.now();
+      try{ clearConfirmedHighlight(); }catch(_){ }
+      // KutAiX: only process digits for the currently selected market
+      try{
+        const selectedMarket = appState.symbol || (document.getElementById('xdigits-market-options')?.value) || null;
+        // Attempt to detect incoming symbol from the message if present
+        const incomingMarket = (res && res.tick && (res.tick.symbol || res.tick.symbol_code || res.tick.instrument)) ? (res.tick.symbol || res.tick.symbol_code || res.tick.instrument) : selectedMarket;
+        if (selectedMarket && incomingMarket === selectedMarket){
+          // extract last digit
+          try{
+            const priceStr = String(price || '0');
+            const lastChar = priceStr.replace(/\D/g,'').slice(-1) || '0';
+            const lastNum = parseInt(lastChar,10) || 0;
+            if (!appState.kutAiX) appState.kutAiX = { windows: {}, analysisTicks: 20 };
+            if (!appState.kutAiX.windows) appState.kutAiX.windows = {};
+            const w = appState.kutAiX.windows[selectedMarket] = appState.kutAiX.windows[selectedMarket] || [];
+            w.push(lastNum);
+            // enforce rolling window length = analysisTicks (default 20)
+            const maxLen = Math.max(1, Math.min(100, Number(appState.kutAiX.analysisTicks || 20)));
+            while(w.length > maxLen) w.shift();
+            // update digit panel live for selected market
+            try{ updateKutAiXDigitPanel(selectedMarket); }catch(_){ }
+          }catch(_){ }
+        }
+      }catch(_){ }
       // Auto-confirm price at most once every 2s when enabled (reduces UI churn)
       try{
         const cfg = appState.kutMilzAi || {};
@@ -9290,6 +9640,7 @@ function handleResponse(res){
             if (confirmedEl) confirmedEl.textContent = `Confirmed: ${price.toFixed(5)} @ ${new Date(now).toLocaleTimeString()}`;
             try{ updateLastTickIndicator(); }catch(_){ }
             try{ updateKutAiXReport(); }catch(_){ }
+            try{ maybeApplyHighlightFromConfirmed(); }catch(_){ }
           }
         }
       }catch(_){ }
@@ -9510,7 +9861,7 @@ function handleResponse(res){
           if (appState.milzxai?.enabled && appState.milzxai.markets?.length > 0) {
             appState.milzxai.currentIndex = (appState.milzxai.currentIndex + 1) % appState.milzxai.markets.length;
             const newSymbol = appState.milzxai.markets[appState.milzxai.currentIndex];
-            console.log(`[MILZXAI] Cycled to market index ${appState.milzxai.currentIndex}: ${newSymbol}`);
+            console.debug(`[MILZXAI] Cycled to market index ${appState.milzxai.currentIndex}: ${newSymbol}`);
             setSymbol(newSymbol); // Update the current symbol
           }
 
@@ -9518,7 +9869,7 @@ function handleResponse(res){
           if (appState.rushXAiEnabled) {
             if (profit <= 0) {
               appState.rushXAiLossCount++;
-              console.log(`[RuShXAi] Loss count: ${appState.rushXAiLossCount}`);
+              console.debug(`[RuShXAi] Loss count: ${appState.rushXAiLossCount}`);
               
               if (appState.rushXAiLossCount >= 2) {
                 appState.rushXAiCooldownUntil = Date.now() + (120 * 1000); // 120 seconds
@@ -9526,7 +9877,7 @@ function handleResponse(res){
                 if (typeof UAE_showTimedPopup === 'function') {
                   UAE_showTimedPopup('🚨 RuShXA Cooldown: Two losses detected. Entering 120-second observation mode to analyze patterns.', 10000);
                 }
-                console.log('[RuShXAi] Cooldown activated - 120 seconds');
+                console.debug('[RuShXAi] Cooldown activated - 120 seconds');
               }
             } else {
               // Win resets loss counter
@@ -9789,7 +10140,7 @@ function checkAndEnterTrade(){
   let tradeSymbol = appState.symbol;
   if (appState.milzxai?.enabled && appState.milzxai.markets?.length > 0) {
     tradeSymbol = appState.milzxai.markets[appState.milzxai.currentIndex];
-    console.log(`[MILZXAI] Using market: ${tradeSymbol} (index ${appState.milzxai.currentIndex})`);
+    console.debug(`[MILZXAI] Using market: ${tradeSymbol} (index ${appState.milzxai.currentIndex})`);
   }
 
   enterTrade(direction, stake, tradeSymbol);
@@ -10454,8 +10805,8 @@ document.addEventListener("DOMContentLoaded", () => {
   try{
     // Check for offline/network issues
     setTimeout(() => {
-      if (window.LightweightChartsError) {
-        console.log('Bot running in offline mode - some features may be limited');
+        if (window.LightweightChartsError) {
+        console.debug('Bot running in offline mode - some features may be limited');
         // Could add a subtle notification here if needed
       }
     }, 3000);
@@ -11093,7 +11444,7 @@ function renderAI(symbol){
   No-Trade Zones: ${Object.keys(ai.zones).length}<br>
   Global Kill: ${AI.global.kill}`;
 }
-console.log("KUT MILZ AI ENGINE ACTIVE");
+console.debug("KUT MILZ AI ENGINE ACTIVE");
 </script>
 
 <script>
@@ -11103,7 +11454,7 @@ console.log("KUT MILZ AI ENGINE ACTIVE");
   //   simulateCooldownTest(2, false, true)   // 2s cooldown, Auto Trading OFF, bot running
   window.simulateCooldownTest = function(durationSec = 2, autoTradingOn = false, botRunning = false){
     try{
-      console.log('[SIM TEST] Starting simulated cooldown test', {durationSec, autoTradingOn, botRunning});
+      console.debug('[SIM TEST] Starting simulated cooldown test', {durationSec, autoTradingOn, botRunning});
       if (!window.appState) window.appState = {};
       appState.autoResume = true;
       appState.autoTradingEnabled = !!autoTradingOn;
@@ -11114,22 +11465,22 @@ console.log("KUT MILZ AI ENGINE ACTIVE");
 
       setTimeout(()=>{
         if (Date.now() >= (appState.cooldownUntil || 0)){
-          console.log('[SIM TEST] Cooldown expired — running completion handler');
+          console.debug('[SIM TEST] Cooldown expired — running completion handler');
           if (dom && dom.blockReasonDisplay) dom.blockReasonDisplay.textContent = 'None';
           try{ updateTradeStatus('Analyzing Market...', 'bg-blue-600 text-white'); }catch(e){ console.warn('[SIM TEST] updateTradeStatus missing'); }
 
           if (appState.isBotRunning && window.AI && typeof window.AI.analyzeMarket === 'function'){
-            try{ window.AI.analyzeMarket(appState.symbol); console.log('[SIM TEST] window.AI.analyzeMarket invoked'); }catch(e){ console.warn('[SIM TEST] analyzeMarket error', e); }
+            try{ window.AI.analyzeMarket(appState.symbol); console.debug('[SIM TEST] window.AI.analyzeMarket invoked'); }catch(e){ console.warn('[SIM TEST] analyzeMarket error', e); }
           } else {
-            console.log('[SIM TEST] Skipping market analysis (botRunning=%s)', appState.isBotRunning);
+            console.debug('[SIM TEST] Skipping market analysis (botRunning=%s)', appState.isBotRunning);
           }
 
           setTimeout(()=>{
             try{ updateTradeStatus('Monitoring Ticks...', 'bg-yellow-600 text-white'); }catch(e){}
-            console.log('[SIM TEST] Monitoring Ticks state applied');
+            console.debug('[SIM TEST] Monitoring Ticks state applied');
           }, 2000);
         } else {
-          console.log('[SIM TEST] Cooldown not yet expired');
+          console.debug('[SIM TEST] Cooldown not yet expired');
         }
       }, (appState.cooldownDuration * 1000) + 50);
     }catch(e){ console.error('[SIM TEST] error', e); }
@@ -11141,7 +11492,7 @@ console.log("KUT MILZ AI ENGINE ACTIVE");
 <!-- ================= AI FULL WIRING ================= -->
 <script>
 (function(){
-  console.log("AI FULL WIRING INIT");
+  console.debug("AI FULL WIRING INIT");
 
   // helpers
   function getConfidence(){
@@ -11209,7 +11560,7 @@ console.log("KUT MILZ AI ENGINE ACTIVE");
     document.querySelector(".container-wrapper")?.appendChild(div);
   }
 
-  console.log("AI FULLY WIRED AND ACTIVE");
+  console.debug("AI FULLY WIRED AND ACTIVE");
 })();
 </script>
 <!-- ================================================== -->
@@ -11277,7 +11628,7 @@ console.log("KUT MILZ AI ENGINE ACTIVE");
     document.getElementById("aiUnlockBtn").onclick = window.AI_UNLOCK;
   }
 
-  console.log("AI ENHANCEMENTS ACTIVE");
+  console.debug("AI ENHANCEMENTS ACTIVE");
 })();
 </script>
 <!-- ================================================ -->
@@ -11360,7 +11711,7 @@ console.log("KUT MILZ AI ENGINE ACTIVE");
     };
   }
 
-  console.log("AI MODES + HOUR BLOCKING ACTIVE");
+  console.debug("AI MODES + HOUR BLOCKING ACTIVE");
 })();
 </script>
 <!-- ================================================ -->
@@ -11463,7 +11814,7 @@ console.log("KUT MILZ AI ENGINE ACTIVE");
     panel.appendChild(btns);
   }
 
-  console.log("AI VISUALS + EXPORT ACTIVE");
+  console.debug("AI VISUALS + EXPORT ACTIVE");
 })();
 </script>
 <!-- ================================================ -->
@@ -11513,7 +11864,7 @@ console.log("KUT MILZ AI ENGINE ACTIVE");
     };
   }
 
-  console.log("AI IMPORT BUTTON ACTIVE");
+  console.debug("AI IMPORT BUTTON ACTIVE");
 })();
 </script>
 <!-- ================================================ -->
@@ -11587,7 +11938,7 @@ console.log("KUT MILZ AI ENGINE ACTIVE");
     };
   }
 
-  console.log("AI AUTO EXPORT TIMER ACTIVE");
+  console.debug("AI AUTO EXPORT TIMER ACTIVE");
 })();
 </script>
 <!-- ======================================================= -->
@@ -12080,7 +12431,7 @@ By checking "I agree", you acknowledge you have read and accept these terms.
   // Handle login form submission
   function handleLogin(e) {
     e.preventDefault();
-    console.log('Login attempt started');
+    console.debug('Login attempt started');
 
     const key = kutmilzKeyInput.value.trim();
     const password = passwordInput.value.trim();
@@ -12099,14 +12450,14 @@ By checking "I agree", you acknowledge you have read and accept these terms.
         try {
           localStorage.setItem('kutmilz_key', key);
           localStorage.setItem('kutmilz_password', password);
-          console.log('Credentials saved to localStorage');
+          console.debug('Credentials saved to localStorage');
         } catch (error) {
           console.warn('Failed to save credentials:', error);
         }
       } else {
         // Clear saved credentials if remember me is unchecked
         try{ localStorage.removeItem('kutmilz_key'); localStorage.removeItem('kutmilz_password'); }catch(e){}
-        console.log('Credentials cleared from localStorage');
+        console.debug('Credentials cleared from localStorage');
       }
 
       // Show loading state
@@ -12163,7 +12514,7 @@ By checking "I agree", you acknowledge you have read and accept these terms.
       kutmilzKeyInput.value = savedKey;
       passwordInput.value = savedPassword;
       document.getElementById('remember-checkbox').checked = true;
-      console.log('Saved credentials loaded');
+      console.debug('Saved credentials loaded');
     }
 
     // Always show login on page load
