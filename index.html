@@ -119,6 +119,37 @@ function maybeApplyHighlightFromConfirmed(){
 }
 </script>
 
+<script>
+// AdvanX UI helpers: toggle details panel and initialize authoritative badge
+(function(){
+  try{
+    document.addEventListener('DOMContentLoaded', ()=>{
+      try{
+        const panel = document.getElementById('advanx-details');
+        const btn = document.getElementById('advanx-toggle-details-btn');
+        const auth = document.getElementById('advanx-authoritative-badge');
+        const showPref = localStorage.getItem('advanx_show_details');
+        const showDefault = (showPref === null) ? true : (showPref === '1');
+        function setPanelVisible(v){ if (panel) panel.style.display = v ? '' : 'none'; if (btn) btn.textContent = v ? 'Hide AdvanX' : 'Show AdvanX'; localStorage.setItem('advanx_show_details', v ? '1' : '0'); }
+        setPanelVisible(!!showDefault);
+        if (btn) btn.addEventListener('click', ()=>{ setPanelVisible(panel && panel.style.display === 'none'); });
+
+        // initialize authoritative badge from AdvanX if present
+        try{
+          if (window.AdvanX && typeof window.AdvanX.getState === 'function'){
+            const s = window.AdvanX.getState() || {};
+            if (auth){
+              if (s.mode){ auth.textContent = 'AUTH'; auth.className = 'pill text-xs text-white bg-indigo-600 ml-2'; }
+              else { auth.textContent = 'STANDBY'; auth.className = 'pill text-xs text-white bg-slate-600 ml-2'; }
+            }
+          }
+        }catch(_){ }
+      }catch(_){ }
+    });
+  }catch(_){ }
+})();
+</script>
+
   <style>
   /* Responsive adjustments for Xdigits panel and modal (mobile/desktop) */
   /* Ensure digit buttons are touch-friendly and readable on small screens */
@@ -259,6 +290,24 @@ function maybeApplyHighlightFromConfirmed(){
       try {
         document.head.appendChild(script);
       } catch (err) {
+        // If AdvanX is authoritative for DIGITS, prefer its marketState/confidence and avoid local prediction
+        try{
+          const statusEl = document.getElementById('kutAiX-summary-status');
+          const usedDigits = window.appState?.lastDigits || [];
+          if (window.AdvanX && typeof window.AdvanX.getState === 'function'){
+            const adv = window.AdvanX.getState() || {};
+            if (adv.mode === 'DIGITS'){
+              if (statusEl) statusEl.textContent = adv.marketState || 'NEUTRAL';
+              // still show raw per-digit percentages for transparency
+              const digitCounts = Array(10).fill(0);
+              usedDigits.forEach(d => { if (d>=0 && d<=9) digitCounts[d]++; });
+              const total = usedDigits.length || 1;
+              for(let i=0;i<10;i++){ const el = document.getElementById('xdigit-'+i+'-pred'); if(el){ const pct = (digitCounts[i]/total)*100; el.textContent = `${pct.toFixed(1)}%`; el.dataset.rawPercent = String(pct); } }
+              const topTextEl = document.getElementById('kutAiX-top-text'); if(topTextEl) topTextEl.textContent = '(see AdvanX for readiness)';
+              return;
+            }
+          }
+        }catch(e){ console.warn('AI fallback display helper failed', e); }
         console.warn('Appending AI script to head failed, trying body fallback', err);
         try { document.body.appendChild(script); } catch (err2) { console.error('Failed to append AI script to body as well', err2); }
       }
@@ -1412,6 +1461,8 @@ button {
 
 </head>
 
+<!-- ui-overhaul removed to restore original UI state -->
+
 <body>
 <!-- Login Overlay -->
 <style>
@@ -2027,6 +2078,7 @@ input[type="checkbox"]:checked:focus {
   </div>
 </div>
 
+<!-- AdvanX inspector removed per user request — rely on existing in-page AdvanX UI -->
   <!-- Always-ON Confirmation Modal -->
       <div id="xdigits-alwayson-modal" style="display:none;position: fixed; inset:0; background: rgba(0,0,0,0.7); z-index: 10000; align-items:center; justify-content:center;">
         <div style="background:#071024;border-radius:10px;padding:20px;max-width:420px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.7);border:1px solid #1f2937;color:#cbd5e1;">
@@ -2088,8 +2140,8 @@ input[type="checkbox"]:checked:focus {
       </div>
 
       <!-- RuShXA Mode Warning Modal -->
-      <div id="rushxa-warning-modal" style="display:none;position: fixed; inset:0; background: rgba(0,0,0,0.7); z-index: 10000; align-items:center; justify-content:center;">
-        <div style="background:#071024;border-radius:10px;padding:18px;max-width:500px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.7);border:1px solid #1f2937;color:#cbd5e1;">
+      <div id="rushxa-warning-modal" class="ui-modal-overlay" style="display:none;position: fixed; inset:0; background: rgba(0,0,0,0.7); z-index: 10000; align-items:center; justify-content:center;">
+        <div class="ui-modal-content" style="background:#071024;border-radius:10px;padding:18px;max-width:500px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.7);border:1px solid #1f2937;color:#cbd5e1;">
           <h3 style="font-size:18px;margin-bottom:12px;color:#ef4444;font-weight:bold;">⚠️ CRITICAL WARNING: RuShXA Mode ⚠️</h3>
           <div style="background:#1f2937;padding:12px;border-radius:6px;margin-bottom:16px;border-left:4px solid #ef4444;">
             <div style="font-size:14px;font-weight:bold;margin-bottom:8px;color:#ef4444;">RULE #1: NEVER GET GREEDY</div>
@@ -2110,8 +2162,8 @@ input[type="checkbox"]:checked:focus {
       </div>
 
       <!-- BestX Auto Selection Modal -->
-      <div id="bestx-modal" style="display:none;position: fixed; inset:0; background: rgba(0,0,0,0.7); z-index: 10000; align-items:center; justify-content:center;" onclick="closeBestXModal()">
-        <div style="background:#071024;border-radius:10px;padding:18px;max-width:420px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.7);border:1px solid #1f2937;color:#cbd5e1;" onclick="event.stopPropagation()">
+      <div id="bestx-modal" class="ui-modal-overlay" style="display:none;position: fixed; inset:0; background: rgba(0,0,0,0.7); z-index: 10000; align-items:center; justify-content:center;" onclick="closeBestXModal()">
+        <div class="ui-modal-content" style="background:#071024;border-radius:10px;padding:18px;max-width:420px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.7);border:1px solid #1f2937;color:#cbd5e1;" onclick="event.stopPropagation()">
           <h3 style="font-size:18px;margin-bottom:8px;color:#93c5fd;">Hey — let BestX handle it for you</h3>
           <p style="font-size:13px;margin-bottom:16px;color:#cbd5e1;">How many trades would you like?</p>
           <div style="display:flex;gap:10px;justify-content:flex-end;">
@@ -2126,8 +2178,8 @@ input[type="checkbox"]:checked:focus {
       <div id="xdigits-toast-container" style="position:fixed;right:16px;bottom:16px;z-index:99999;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none;"></div>
 
         <!-- BestX Confirm Modal -->
-        <div id="bestx-confirm-modal" style="display:none;position: fixed; inset:0; background: rgba(0,0,0,0.7); z-index: 11000; align-items:center; justify-content:center;" onclick="(e)=>{if(e.target.id==='bestx-confirm-modal')closeBestXConfirmModal();}">
-          <div style="background:#071024;border-radius:10px;padding:18px;max-width:420px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.7);border:1px solid #1f2937;color:#cbd5e1;" onclick="event.stopPropagation()">
+        <div id="bestx-confirm-modal" class="ui-modal-overlay" style="display:none;position: fixed; inset:0; background: rgba(0,0,0,0.7); z-index: 11000; align-items:center; justify-content:center;" onclick="(e)=>{if(e.target.id==='bestx-confirm-modal')closeBestXConfirmModal();}">
+          <div class="ui-modal-content" style="background:#071024;border-radius:10px;padding:18px;max-width:420px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.7);border:1px solid #1f2937;color:#cbd5e1;" onclick="event.stopPropagation()">
             <h3 style="font-size:18px;margin-bottom:8px;color:#93c5fd;">BestX Confirmation</h3>
             <p id="bestx-confirm-message" style="font-size:13px;margin-bottom:16px;color:#cbd5e1;">Confirm bestX decision?</p>
             <div style="display:flex;gap:10px;justify-content:flex-end;">
@@ -2146,7 +2198,7 @@ input[type="checkbox"]:checked:focus {
     <div class="lg:col-span-1">
 
       <!-- Bot Controls -->
-      <div class="card">
+      <div class="card rounded-xl shadow-lg border border-white/10 bg-neutral-900/80">
         <h2 class="text-xl font-semibold mb-4 text-sky-400">Bot Controls</h2>
 
         <div class="mt-2 border-t border-slate-700 pt-4 space-y-3">
@@ -2393,7 +2445,7 @@ input[type="checkbox"]:checked:focus {
       </div>
 
       <!-- Confidence Meter -->
-      <div class="card">
+      <div class="card rounded-xl shadow-lg border border-white/10 bg-neutral-900/80">
         <div class="flex items-center justify-between mb-3">
           <h2 class="text-xl font-semibold text-emerald-400">Confidence Meter</h2>
           <span id="signal-pill" class="pill bg-slate-700 text-slate-200">WAIT</span>
@@ -2413,7 +2465,7 @@ input[type="checkbox"]:checked:focus {
       </div>
 
       <!-- Trade Settings -->
-      <div class="card">
+      <div class="card rounded-xl shadow-lg border border-white/10 bg-neutral-900/80">
         <h2 class="text-xl font-semibold mb-4 text-sky-400">Trade Settings</h2>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2509,6 +2561,34 @@ input[type="checkbox"]:checked:focus {
             </label>
           </div>
 
+          <!-- Bulk Trade Panel -->
+          <div class="md:col-span-2 p-3 bg-slate-800/60 rounded-lg mt-3">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="bulkTradesCount" class="block text-sm font-medium mb-1">Trades (count)</label>
+                <input id="bulkTradesCount" type="number" min="1" step="1" value="5"
+                  class="w-full p-2 rounded bg-slate-700 border border-slate-600 text-slate-50">
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Markets</label>
+                <div class="text-xs text-slate-400">Uses MILZXAI markets when enabled, otherwise current symbol</div>
+              </div>
+              <div>
+                <label for="bulkStake" class="block text-sm font-medium mb-1">Stake per trade (USD)</label>
+                <input id="bulkStake" type="number" step="0.01" value="1.00" class="w-full p-2 rounded bg-slate-700 border border-slate-600 text-slate-50">
+              </div>
+              <div>
+                <label for="bulkCooldownMs" class="block text-sm font-medium mb-1">Cooldown between trades (ms)</label>
+                <input id="bulkCooldownMs" type="number" step="100" value="1000" class="w-full p-2 rounded bg-slate-700 border border-slate-600 text-slate-50">
+              </div>
+            </div>
+            <div class="flex items-center gap-3 mt-3">
+              <button id="bulkStartBtn" class="py-2 px-3 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">Start Bulk</button>
+              <button id="bulkCancelBtn" class="py-2 px-3 rounded bg-red-600 hover:bg-red-700 text-white font-semibold">Cancel</button>
+              <div class="ml-auto text-sm text-slate-300">Remaining: <span id="bulkRemaining">0</span></div>
+            </div>
+          </div>
+
           <!-- RuShXAi Toggle -->
           <div class="flex items-center justify-between p-4 rounded-lg border border-slate-700 bg-slate-900/30">
             <div class="flex items-center gap-3">
@@ -2531,7 +2611,7 @@ input[type="checkbox"]:checked:focus {
       </div>
 
       <!-- Trading Parameters -->
-      <div class="card">
+      <div class="card rounded-xl shadow-lg border border-white/10 bg-neutral-900/80">
         <h2 class="text-xl font-semibold mb-4 text-sky-400">Trading Parameters</h2>
 
         <div class="grid grid-cols-2 gap-4">
@@ -2581,6 +2661,12 @@ input[type="checkbox"]:checked:focus {
           <div>
             <label for="maxTradesPerSignal" class="block text-sm font-medium mb-1">Max Trades/Signal</label>
             <input type="number" id="maxTradesPerSignal" step="1"
+              class="w-full p-2 rounded bg-slate-700 border border-slate-600 text-slate-50 focus:ring-sky-500 focus:border-sky-500">
+          </div>
+
+          <div>
+            <label for="maxConcurrentContracts" class="block text-sm font-medium mb-1">Max Concurrent Trades</label>
+            <input type="number" id="maxConcurrentContracts" step="1" min="1" value="1"
               class="w-full p-2 rounded bg-slate-700 border border-slate-600 text-slate-50 focus:ring-sky-500 focus:border-sky-500">
           </div>
 
@@ -2852,7 +2938,7 @@ input[type="checkbox"]:checked:focus {
 
 
       <!-- Protected Defaults -->
-      <div class="card">
+      <div class="card rounded-xl shadow-lg border border-white/10 bg-neutral-900/80">
         <div class="flex justify-between items-start mb-4 border-b border-slate-700 pb-3">
           <h2 class="text-xl font-semibold text-pink-400">Protected Defaults</h2>
           <button id="unlock-settings-btn"
@@ -3290,7 +3376,17 @@ input[type="checkbox"]:checked:focus {
               class="w-full mt-1 p-2 bg-slate-800 border border-slate-600 rounded text-slate-100 focus:ring-cyan-500 focus:border-cyan-500" />
           </div>
           <div class="flex items-end">
-            <button id="kutAiX-intelligent-barrier-btn" class="px-3 py-1 text-xs rounded bg-emerald-600 text-white transition-colors duration-200" type="button">ON</button>
+            <button id="kutAiX-toggle-btn" class="px-3 py-1 text-xs rounded bg-emerald-600 text-white transition-colors duration-200" type="button">ON</button>
+          </div>
+          <div>
+            <label class="text-xs text-slate-400">RuShX Max Trades</label>
+            <input id="rushx-max-trades" type="number" min="1" max="100" step="1" value="10"
+              class="w-full mt-1 p-2 bg-slate-800 border border-slate-600 rounded text-slate-100" />
+          </div>
+          <div>
+            <label class="text-xs text-slate-400">RuShX Cooldown (ms)</label>
+            <input id="rushx-cooldown-ms" type="number" min="100" max="10000" step="100" value="1000"
+              class="w-full mt-1 p-2 bg-slate-800 border border-slate-600 rounded text-slate-100" />
           </div>
         </div>
 
@@ -3305,6 +3401,10 @@ input[type="checkbox"]:checked:focus {
             <div>
               <span class="text-slate-400">Last Digit:</span>
               <span id="kutAiX-last-digit" class="text-cyan-400 font-mono">--</span>
+            <div>
+              <span class="text-slate-400">RuShX Remaining:</span>
+              <span id="rushx-remaining" class="text-amber-400 font-mono">--</span>
+            </div>
             </div>
             <div>
               <span class="text-slate-400">Price Change:</span>
@@ -3408,6 +3508,23 @@ input[type="checkbox"]:checked:focus {
         <!-- Prediction Summary Badge -->
         <div class="text-center">
           <span id="kutAiX-summary-badge" class="pill bg-slate-600 text-slate-300 text-xs">--</span>
+          <span id="advanx-status-badge" class="pill bg-slate-700 text-slate-200 text-xs ml-2">AdvanX: --</span>
+          <button id="advanx-toggle-details-btn" class="ml-2 pill px-2 py-1 text-xs bg-slate-700 text-white">Hide AdvanX</button>
+          <span id="advanx-authoritative-badge" class="pill bg-slate-600 text-slate-200 text-xs ml-2">STANDBY</span>
+        </div>
+
+        <!-- AdvanX Details Panel -->
+        <div id="advanx-details" class="mt-3 text-sm text-left p-3 bg-slate-800/40 rounded">
+          <div class="flex items-center justify-between mb-1">
+            <div class="text-xs text-slate-400">AdvanX Confidence</div>
+            <div id="advanx-confidence" class="text-sm text-white">--%</div>
+          </div>
+          <div class="flex items-center justify-between mb-1">
+            <div class="text-xs text-slate-400">Entry Bias</div>
+            <div id="advanx-entry-bias" class="text-sm text-white">--</div>
+          </div>
+          <div class="text-xs text-slate-400 mb-1">Risk Flags</div>
+          <div id="advanx-risk-flags" class="text-sm text-red-300">None</div>
         </div>
 
         <!-- BestX Auto Selection -->
@@ -3420,7 +3537,7 @@ input[type="checkbox"]:checked:focus {
       </div>
 
       <!-- Chart Card -->
-      <div class="card">
+      <div class="card rounded-xl shadow-lg border border-white/10 bg-neutral-900/80">
         <div class="flex items-center justify-between mb-3">
           <h2 class="text-xl font-semibold text-sky-400">Live Chart</h2>
           <span id="chart-status" class="pill bg-slate-700 text-slate-200">WAITING</span>
@@ -3432,7 +3549,7 @@ input[type="checkbox"]:checked:focus {
       </div>
 
       <!-- API Login -->
-      <div class="card">
+      <div class="card rounded-xl shadow-lg border border-white/10 bg-neutral-900/80">
         <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-700">
           <h2 class="text-xl font-semibold text-sky-400">API Login</h2>
           <span id="login-status-badge" class="pill bg-red-800 text-white animate-pulse">DISCONNECTED</span>
@@ -3486,7 +3603,7 @@ input[type="checkbox"]:checked:focus {
           </button>
         </div>
 
-        <p id="connection-status" class="text-sm text-slate-400 mt-2 text-center hidden">API connected - Bot ready to trade</p>
+        <p id="connection-status-text" class="text-sm text-slate-400 mt-2 text-center hidden">API connected - Bot ready to trade</p>
 
         <p id="token-error-message" class="text-sm text-red-400 mt-3 hidden">API token required to start the bot.</p>
 
@@ -3511,7 +3628,7 @@ input[type="checkbox"]:checked:focus {
       </div>
 
       <!-- Xdigits Trading Panel -->
-      <div class="card" id="xdigits-panel">
+      <div class="card rounded-xl shadow-lg border border-white/10 bg-neutral-900/80" id="xdigits-panel">
         <div id="kutMilzAi-status" class="text-sm mb-2 text-slate-300">KutMilzAi Pro Engine status...</div>
         <div id="xdigits-avg-bias-header-wrap" style="display:none;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;">
           <div id="xdigits-avg-bias-header" style="font-size:1.125rem;font-weight:600;color:#93c5fd">Average Bias: <span id="xdigits-avg-bias-header-val">0.000</span></div>
@@ -3753,22 +3870,16 @@ input[type="checkbox"]:checked:focus {
         </div>
       </div>
 
-      <!-- Digit Trade Confirmation Modal (Only when trading Digits) -->
-      <div id="xdigits-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center; display: none;">
-        <div style="background: #0f172a; border: 2px solid #3b82f6; border-radius: 12px; padding: 30px; max-width: 400px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.9);">
-          <h3 id="xdigits-modal-title" style="font-size: 24px; font-weight: bold; color: #93c5fd; margin-bottom: 15px;">Digit Trade</h3>
-          <p id="xdigits-modal-message" style="font-size: 16px; color: #cbd5e1; margin-bottom: 25px;">Select trade type:</p>
-          <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-            <button id="xdigits-modal-call-btn" class="flex-1 px-4 py-3 rounded font-bold text-lg transition" style="background: #16a34a; color: white; border: 2px solid #16a34a; cursor: pointer;">
-              📈 CALL
-            </button>
-            <button id="xdigits-modal-put-btn" class="flex-1 px-4 py-3 rounded font-bold text-lg transition" style="background: #dc2626; color: white; border: 2px solid #dc2626; cursor: pointer;">
-              📉 PUT
-            </button>
+      <!-- Digit Trade Confirmation Modal (restored pre-overhaul full-screen modal) -->
+      <div id="xdigits-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: transparent; z-index: 9999; display: none; align-items: center; justify-content: center;">
+        <div style="background: linear-gradient(180deg,#071029 0%, #0b1220 100%); border: 1px solid rgba(59,130,246,0.06); border-radius: 12px; padding: 26px 22px; max-width: 420px; width: 92%; text-align: center; box-shadow: 0 10px 30px rgba(2,6,23,0.35); z-index:2; position:relative;">
+          <h3 id="xdigits-modal-title" style="font-size:22px; font-weight:900; color:#ffd54f; margin:0 0 10px 0; letter-spacing:0.4px;">Digit</h3>
+          <p id="xdigits-modal-message" style="font-size:14px; color:#cbd5e1; margin:0 0 16px 0;">Select Over or Under</p>
+          <div style="display:flex;gap:12px;justify-content:center;align-items:center;margin-bottom:14px;">
+            <button id="xdigits-modal-call-btn" style="flex:1;background: linear-gradient(180deg,#10b981,#059669);color:#fff;border: none;padding:12px 14px;border-radius:10px;font-weight:800;cursor:pointer;box-shadow: 0 10px 30px rgba(16,185,129,0.12);">X Over</button>
+            <button id="xdigits-modal-put-btn" style="flex:1;background: linear-gradient(180deg,#ef4444,#dc2626);color:#fff;border:none;padding:12px 14px;border-radius:10px;font-weight:800;cursor:pointer;box-shadow: 0 10px 30px rgba(239,68,68,0.12);">X Under</button>
           </div>
-          <button id="xdigits-modal-cancel-btn" class="w-full px-4 py-2 rounded font-semibold bg-slate-700 text-slate-200 hover:bg-slate-600 transition">
-            Cancel
-          </button>
+          <button id="xdigits-modal-cancel-btn" style="background:transparent;border:none;color:#94a3b8;padding:10px 0;font-weight:700;cursor:pointer;">Cancel</button>
         </div>
       </div>
 
@@ -3931,7 +4042,6 @@ const appState = {
 
 
   tradeCounter:0,
-  currentContractId:null,
   is_sellable:0,
   isSelling:false,
 
@@ -4062,6 +4172,7 @@ duration:5,
   tpUSD:0.34,
   slUSD:10.00,
   maxTradesPerSignal:1,
+  maxConcurrentContracts:1,
   cooldownDuration:30,
   cooldownUntil:0,
 
@@ -5276,7 +5387,7 @@ const dom = {
   // controls
   connectApiBtn: $("connect-api-btn"),
   toggleBotBtn: $("toggle-bot-btn"),
-  connectionStatus: $("connection-status"),
+  connectionStatusText: $("connection-status-text"),
   unlockBtn: $("unlock-settings-btn"),
   modeSelect: $("mode-select"),
   modePill: $("mode-pill"),
@@ -5295,7 +5406,15 @@ const dom = {
   tpInput: $("tpUSD"),
   slInput: $("slUSD"),
   maxTradesInput: $("maxTradesPerSignal"),
+  maxConcurrentContracts: $("maxConcurrentContracts"),
   cooldownInput: $("cooldownDuration"),
+  // Bulk trade controls
+  bulkTradesCount: $("bulkTradesCount"),
+  bulkStake: $("bulkStake"),
+  bulkCooldownMs: $("bulkCooldownMs"),
+  bulkStartBtn: $("bulkStartBtn"),
+  bulkCancelBtn: $("bulkCancelBtn"),
+  bulkRemaining: $("bulkRemaining"),
 
   safeToggle: $("safe-mode-toggle"),
   safeIndicator: $("safe-mode-indicator"),
@@ -5371,7 +5490,7 @@ const dom = {
   kutAiXAnalysisTicks: $("kutAiX-analysis-ticks"),
   kutAiXDigitThreshold: $("kutAiX-digit-threshold"),
   kutAiXConfidenceFilter: $("kutAiX-confidence-filter"),
-  kutAiXIntelligentBarrier: $("kutAiX-intelligent-barrier-btn"),
+  kutAiXToggle: $("kutAiX-toggle-btn"),
   kutAiXCurrentPrice: $("kutAiX-current-price"),
   kutAiXLastDigit: $("kutAiX-last-digit"),
   kutAiXPriceChange: $("kutAiX-price-change"),
@@ -5384,6 +5503,13 @@ const dom = {
   kutAiXConfidence: $("kutAiX-confidence"),
   kutAiXBias: $("kutAiX-bias"),
   kutAiXSummaryBadge: $("kutAiX-summary-badge"),
+  advanxStatusBadge: $("advanx-status-badge"),
+  advanxAuthoritativeBadge: $("advanx-authoritative-badge"),
+  advanxDetailsPanel: $("advanx-details"),
+  advanxConfidence: $("advanx-confidence"),
+  advanxEntryBias: $("advanx-entry-bias"),
+  advanxRiskFlags: $("advanx-risk-flags"),
+  advanxToggleDetailsBtn: $("advanx-toggle-details-btn"),
 
   // Digit Prediction Summary Layer
   kutAiXSummaryStatus: $("kutAiX-summary-status"),
@@ -5472,6 +5598,8 @@ const dom = {
   bulk5Label: $("bulk5Label"),
   autoTradingToggle: $("autoTradingToggle"),
   rushXAiToggle: $("rushXAiToggle"),
+  rushxMaxTrades: $("rushx-max-trades"),
+  rushxCooldownMs: $("rushx-cooldown-ms"),
 
   // current trade display
   currentTradeSection: $("current-trade-section"),
@@ -5556,6 +5684,30 @@ function attachUserEditTracking(){
 }
 attachUserEditTracking();
 window.clearUserEditedInputs = function(){ try{ window._userEditedInputs.clear(); }catch(_){ } };
+
+// Enable/disable KutAiX controls based on ACCU or module state
+function refreshKutAiXControls(){
+  try{
+    const accuOn = !!(appState.accu && appState.accu.enabled);
+    const moduleOff = !!(appState.kutAiX && appState.kutAiX.enabled === false);
+    const shouldEnable = !accuOn && !moduleOff;
+    const controls = [dom.kutAiXToggle, dom.kutAiXAnalysisTicks, dom.kutAiXDigitThreshold, dom.kutAiXConfidenceFilter, dom.kutAiXPopulateSample];
+    controls.forEach(el => {
+      if(!el) return;
+      try{
+        if('disabled' in el) el.disabled = !shouldEnable;
+        // visual dim for non-inputs
+        if(!('disabled' in el)) {
+          if(!shouldEnable) el.classList.add('opacity-50'); else el.classList.remove('opacity-50');
+        }
+        el.setAttribute('aria-disabled', (!shouldEnable).toString());
+        if(!shouldEnable) el.title = accuOn ? 'Disabled while Accumulator (ACCU) is active' : 'Disabled';
+        else if(el.title && el.title.includes('Disabled')) el.title = '';
+      }catch(_){ }
+    });
+  }catch(e){ console.warn('refreshKutAiXControls error', e); }
+}
+
 
 // Sync barrier/lookback UI into appState so user edits take immediate effect
 function attachKutMilzAiSync(){
@@ -6155,6 +6307,9 @@ function updateUI(){
     }
   }
 
+  // Ensure KutAiX controls reflect ACCU/module state
+  try{ refreshKutAiXControls(); }catch(_){ }
+
   // Multi-Timeframe Analysis UI - Force visual sync
   if (dom.mtfToggle) {
     const shouldBeChecked = !!appState.mtfEnabled;
@@ -6207,7 +6362,29 @@ function updateUI(){
   setIfNotEditing(dom.tpInput, appState.tpUSD.toFixed(2));
   setIfNotEditing(dom.slInput, appState.slUSD.toFixed(2));
   setIfNotEditing(dom.maxTradesInput, String(appState.maxTradesPerSignal));
-  setIfNotEditing(dom.cooldownInput, String(appState.cooldownDuration));
+  // Load persisted UI presets where available
+  try{
+    const storedMax = parseInt(localStorage.getItem("maxConcurrentContracts"));
+    if (!isNaN(storedMax) && storedMax > 0) appState.maxConcurrentContracts = storedMax;
+    setIfNotEditing(dom.maxConcurrentContracts, String(appState.maxConcurrentContracts || 1));
+
+    setIfNotEditing(dom.cooldownInput, String(appState.cooldownDuration));
+
+    const storedBulkTrades = parseInt(localStorage.getItem("bulkTradesCount"));
+    if (!isNaN(storedBulkTrades) && storedBulkTrades > 0) setIfNotEditing(dom.bulkTradesCount, String(storedBulkTrades)); else setIfNotEditing(dom.bulkTradesCount, String(5));
+
+    const storedBulkStake = parseFloat(localStorage.getItem("bulkStake"));
+    if (!isNaN(storedBulkStake) && storedBulkStake > 0) setIfNotEditing(dom.bulkStake, String(storedBulkStake.toFixed(2))); else setIfNotEditing(dom.bulkStake, String(appState.stakeAmount.toFixed(2)));
+
+    const storedBulkCooldown = parseInt(localStorage.getItem("bulkCooldownMs"));
+    if (!isNaN(storedBulkCooldown)) setIfNotEditing(dom.bulkCooldownMs, String(storedBulkCooldown)); else setIfNotEditing(dom.bulkCooldownMs, String(1000));
+  }catch(_){
+    setIfNotEditing(dom.maxConcurrentContracts, String(appState.maxConcurrentContracts || 1));
+    setIfNotEditing(dom.cooldownInput, String(appState.cooldownDuration));
+    setIfNotEditing(dom.bulkTradesCount, String(5));
+    setIfNotEditing(dom.bulkStake, String(appState.stakeAmount.toFixed(2)));
+    setIfNotEditing(dom.bulkCooldownMs, String(1000));
+  }
 
   if (dom.modeSelect && document.activeElement !== dom.modeSelect) dom.modeSelect.value = appState.mode;
   if (dom.safeToggle && document.activeElement !== dom.safeToggle) dom.safeToggle.checked = appState.isSafeMode;
@@ -6340,10 +6517,10 @@ function updateUI(){
   setIfNotEditing(dom.kutAiXAnalysisTicks, String(appState.kutAiX?.analysisTicks ?? 20));
   setIfNotEditing(dom.kutAiXDigitThreshold, String(appState.kutAiX?.digitThreshold ?? 5));
   setIfNotEditing(dom.kutAiXConfidenceFilter, String(appState.kutAiX?.confidenceFilter ?? 0));
-  if (dom.kutAiXIntelligentBarrier && appState.kutAiX) {
-    const on = !!appState.kutAiX.intelligentBarrier;
-    dom.kutAiXIntelligentBarrier.textContent = on ? 'ON' : 'OFF';
-    dom.kutAiXIntelligentBarrier.style.background = on ? '#059669' : '#374151';
+  if (dom.kutAiXToggle && appState.kutAiX) {
+    const on = (typeof appState.kutAiX.enabled === 'undefined') ? true : !!appState.kutAiX.enabled;
+    dom.kutAiXToggle.textContent = on ? 'ON' : 'OFF';
+    dom.kutAiXToggle.style.background = on ? '#059669' : '#374151';
   }
 
   // Update KutAiX live stats
@@ -6414,7 +6591,7 @@ function updateUI(){
   
   // Manual Sell button state
   if (dom.manualSellBtn) {
-    dom.manualSellBtn.disabled = !appState.currentContractId || appState.isSelling;
+    dom.manualSellBtn.disabled = !(appState.activeContracts && appState.activeContracts.length > 0) || appState.isSelling;
   }
 
   if (dom.accountTypeStatus){
@@ -6586,6 +6763,10 @@ function updateStateFromUI(){
     if (dom.tpInput) appState.tpUSD = parseFloat(dom.tpInput.value) || 0;
     if (dom.slInput) appState.slUSD = parseFloat(dom.slInput.value) || 0;
     if (dom.maxTradesInput) appState.maxTradesPerSignal = parseInt(dom.maxTradesInput.value) || 0;
+    if (dom.maxConcurrentContracts) {
+      appState.maxConcurrentContracts = Math.max(1, parseInt(dom.maxConcurrentContracts.value) || 1);
+      try{ safeSetItem("maxConcurrentContracts", appState.maxConcurrentContracts); }catch(_){ localStorage.setItem("maxConcurrentContracts", String(appState.maxConcurrentContracts)); }
+    }
     if (dom.cooldownInput) appState.cooldownDuration = parseInt(dom.cooldownInput.value) || 0;
 
     if (dom.autoResumeToggle) appState.autoResume = !!dom.autoResumeToggle.checked;
@@ -6593,6 +6774,16 @@ function updateStateFromUI(){
     // Smart Take-Out
     if (!appState.smartTakeout) appState.smartTakeout = { enabled:false, primaryTicks:2, fallbackTicks:1, fallbackAfterPct:70 };
     if (dom.smartTakeoutToggle) appState.smartTakeout.enabled = !!dom.smartTakeoutToggle.checked;
+    // Persist bulk UI presets when changed
+    try{
+      if (dom.bulkTradesCount) safeSetItem("bulkTradesCount", parseInt(dom.bulkTradesCount.value) || 0);
+      if (dom.bulkStake) safeSetItem("bulkStake", parseFloat(dom.bulkStake.value) || appState.stakeAmount);
+      if (dom.bulkCooldownMs) safeSetItem("bulkCooldownMs", parseInt(dom.bulkCooldownMs.value) || 0);
+    }catch(_){
+      try{ if (dom.bulkTradesCount) localStorage.setItem("bulkTradesCount", String(parseInt(dom.bulkTradesCount.value) || 0)); }catch(_){ }
+      try{ if (dom.bulkStake) localStorage.setItem("bulkStake", String(parseFloat(dom.bulkStake.value) || appState.stakeAmount)); }catch(_){ }
+      try{ if (dom.bulkCooldownMs) localStorage.setItem("bulkCooldownMs", String(parseInt(dom.bulkCooldownMs.value) || 0)); }catch(_){ }
+    }
     if (dom.smartTakeoutPrimary) appState.smartTakeout.primaryTicks = Math.max(1, parseInt(dom.smartTakeoutPrimary.value) || 2);
     if (dom.smartTakeoutFallback) appState.smartTakeout.fallbackTicks = Math.max(1, parseInt(dom.smartTakeoutFallback.value) || 1);
     if (dom.smartTakeoutFallbackPct) appState.smartTakeout.fallbackAfterPct = Math.max(0, Math.min(100, parseFloat(dom.smartTakeoutFallbackPct.value) || 70));
@@ -7579,11 +7770,9 @@ function showXdigitsTradeModal(digit, barrier, predictedType, stats) {
     }
   }
 
-  // Update modal title/message with digit info (informational only)
-  title.textContent = `Digit ${digit}`;
-  message.textContent = `Digit ${digit} — Select Over or Under (informational)`;
-
-  // Configure OVER button (maps to CALL)
+  // Update title/message and configure OVER button (maps to CALL)
+  if (title) title.textContent = `Digit ${digit}`;
+  if (message) message.textContent = `Digit ${digit} — Select Over or Under (informational)`;
   callBtn.textContent = `${digit} Over`;
   callBtn.onclick = () => {
     closeXdigitsTradeModal();
@@ -7597,24 +7786,116 @@ function showXdigitsTradeModal(digit, barrier, predictedType, stats) {
     window.kutMilzAiManualTrade && window.kutMilzAiManualTrade(digit, 'PUT');
   };
   
-  // Configure Cancel button
-  cancelBtn.onclick = closeXdigitsTradeModal;
+  // Configure Cancel button to close the modal (no side effects)
+  try{ if (cancelBtn) cancelBtn.onclick = closeXdigitsTradeModal; }catch(_){ }
   
+  // Hide other modals that might conflict (UI-only)
+  try{
+    document.querySelectorAll('[id$="-modal"]').forEach(m=>{ if (m && m.id !== 'xdigits-modal') { try{ m.style.display='none'; m.classList && m.classList.remove('open'); }catch(_){ } } });
+  }catch(_){ }
+
   // Show modal
   modal.style.display = "flex";
+  // ensure CSS open class and pointer events are set so anchored modal is visible
+  modal.classList.add('open');
+  modal.style.pointerEvents = 'auto';
+  try{ const inner = modal.querySelector('.xdigits-popup-inner') || modal.querySelector('div'); if(inner) inner.classList.add('open'); }catch(_){ }
+  // ensure the popup-inner class exists on the inner element
+  try{ const innerForClass = modal.querySelector('.xdigits-popup-inner') || modal.querySelector('div'); if(innerForClass) innerForClass.classList.add('xdigits-popup-inner'); }catch(_){ }
+  // UI-only: center the inner dialog inside the panel for consistent appearance
+  try{
+    const inner = modal.querySelector('.xdigits-popup-inner') || modal.querySelector('div');
+    if (inner){
+      inner.style.position = 'absolute';
+      inner.style.left = '50%';
+      inner.style.top = '50%';
+      inner.style.transform = 'translate(-50%, -50%)';
+      inner.style.margin = '0';
+    }
+  }catch(_){/* presentational only */}
   
   // Close modal when clicking outside
-  modal.onclick = (e) => {
-    if (e.target === modal) closeXdigitsTradeModal();
-  };
+  // Robust outside-click handler: close when clicking anywhere in modal that's not inside the inner dialog
+  try{
+    // remove previous handler if present
+    if (modal._xd_click_handler) modal.removeEventListener('click', modal._xd_click_handler);
+    modal._xd_click_handler = function(e){
+      try{
+        const innerEl = modal.querySelector('.xdigits-popup-inner');
+        const overlay = modal.querySelector('.xdigits-overlay');
+        // if clicked the overlay, always close
+        if (overlay && overlay.contains(e.target)) { closeXdigitsTradeModal(); return; }
+        if (!innerEl) { if (e.target === modal) closeXdigitsTradeModal(); return; }
+        // if click target is the modal element itself or not contained by inner, close
+        if (e.target === modal || !innerEl.contains(e.target)) { closeXdigitsTradeModal(); }
+      }catch(_){ /* presentational only */ }
+    };
+    modal.addEventListener('click', modal._xd_click_handler);
+  }catch(_){ /* presentational only */ }
 }
+
+// UI-only: track last clicked digit button rect so modal can be anchored visually
+(function(){
+  function attachDigitClickTrackers(){
+    try{
+      document.querySelectorAll('button[id^="xdigit-"]').forEach(btn=>{
+        // avoid duplicate listeners
+        if (btn.__xdigits_tracked) return; btn.__xdigits_tracked = true;
+        btn.addEventListener('click', (e)=>{
+          try{
+            window._lastXdigitClickRect = btn.getBoundingClientRect();
+            // also store small timestamp for freshness
+            window._lastXdigitClickAt = Date.now();
+          }catch(_){ }
+        }, {capture:true});
+      });
+    }catch(_){ }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attachDigitClickTrackers); else attachDigitClickTrackers();
+  // Re-attach on DOM changes/resizes
+  window.addEventListener('resize', attachDigitClickTrackers);
+})();
+
+// UI-only: move Xdigits modal into the xdigits panel so it appears inside the card
+(function(){
+  function reparentXdigitsModal(){
+    try{
+      const modal = document.getElementById('xdigits-modal');
+      const panel = document.getElementById('xdigits-panel');
+      if (!modal || !panel) return;
+
+      // If already moved, skip
+      if (panel.contains(modal)) return;
+
+      // Move modal under panel (visual-only)
+      panel.appendChild(modal);
+
+      // Make modal positioned absolutely inside panel and keep centering behavior
+      modal.style.position = 'absolute';
+      modal.style.top = '0';
+      modal.style.left = '0';
+      modal.style.right = '0';
+      modal.style.bottom = '0';
+      modal.style.background = 'rgba(0,0,0,0.55)';
+      modal.style.zIndex = 60; // keep above panel content
+      modal.style.alignItems = 'center';
+      modal.style.justifyContent = 'center';
+
+      // Adjust inner dialog box max-width to fit panel
+      const inner = modal.querySelector('div');
+      if (inner) inner.style.maxWidth = '360px';
+    }catch(e){/* presentational only */}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', reparentXdigitsModal); else reparentXdigitsModal();
+  window.addEventListener('resize', reparentXdigitsModal);
+})();
 
 /**
  * Close Digit Trade Modal
  */
 function closeXdigitsTradeModal() {
   const modal = document.getElementById("xdigits-modal");
-  if (modal) modal.style.display = "none";
+  if (modal){ modal.style.display = "none"; modal.classList.remove('open'); modal.style.pointerEvents = 'none'; const inner = modal.querySelector('div'); if (inner) inner.classList.remove('open'); }
 }
 
 function closeBestXModal() {
@@ -8128,18 +8409,66 @@ try{
       const aiTicksEl = document.getElementById('kutAiX-analysis-ticks');
       const threshEl = document.getElementById('kutAiX-digit-threshold');
       const confEl = document.getElementById('kutAiX-confidence-filter');
-      const intelBtn = document.getElementById('kutAiX-intelligent-barrier-btn');
+      // Load persisted digitThreshold if present
+      try{
+        if (!appState.kutAiX) appState.kutAiX = {};
+        const storedThresh = localStorage.getItem('kutAiX_digitThreshold');
+        if (storedThresh !== null) {
+          const sv = Number(storedThresh);
+          if (Number.isFinite(sv)) {
+            appState.kutAiX.digitThreshold = sv;
+            if (threshEl) threshEl.value = String(sv);
+          }
+        }
+      }catch(_){ }
       // Initialize defaults from UI if not present
       appState.kutAiX.analysisTicks = Number(appState.kutAiX.analysisTicks || (aiTicksEl ? Number(aiTicksEl.value) : 20));
       appState.kutAiX.confidenceFilter = Number(appState.kutAiX.confidenceFilter || (confEl ? Number(confEl.value) : 0));
       appState.kutAiX.intelligentBarrier = (typeof appState.kutAiX.intelligentBarrier === 'boolean') ? appState.kutAiX.intelligentBarrier : true;
-      // Apply button text
-      if (intelBtn) intelBtn.textContent = appState.kutAiX.intelligentBarrier ? 'AUTO' : 'MANUAL';
+      // Ensure a visible ON/OFF toggle exists for the KutAiX module
+      let moduleToggle = document.getElementById('kutAiX-toggle-btn');
+      // Load persisted enabled state if present
+      try{
+        const stored = localStorage.getItem('kutAiX_enabled');
+        if (stored === '0' || stored === '1') {
+          appState.kutAiX.enabled = stored === '1';
+        }
+      }catch(_){ }
+      if (typeof appState.kutAiX.enabled === 'undefined') appState.kutAiX.enabled = true;
+      function refreshKutAiXModuleToggle(){
+        try{
+          if (!moduleToggle) return;
+          if (appState.kutAiX.enabled){ moduleToggle.textContent = 'ON'; moduleToggle.classList.remove('bg-red-600'); moduleToggle.classList.add('bg-emerald-600'); moduleToggle.classList.add('text-white'); }
+          else { moduleToggle.textContent = 'OFF'; moduleToggle.classList.remove('bg-emerald-600'); moduleToggle.classList.add('bg-red-600'); moduleToggle.classList.add('text-white'); }
+        }catch(_){ }
+      }
+      refreshKutAiXModuleToggle();
+      if (moduleToggle){ moduleToggle.addEventListener('click', ()=>{
+        try{
+          appState.kutAiX.enabled = !appState.kutAiX.enabled;
+          try{ safeSetItem('kutAiX_enabled', appState.kutAiX.enabled ? '1' : '0'); }catch(_){ try{ localStorage.setItem('kutAiX_enabled', appState.kutAiX.enabled ? '1' : '0'); }catch(_){} }
+          refreshKutAiXModuleToggle();
+          // Update UI and clear/compute as appropriate
+          if (appState.kutAiX.enabled) { updateXdigitsDisplay(); updateDigitPredictionSummary(); updateKutAiXDigitPanel(appState.symbol || document.getElementById('xdigits-market-options')?.value); }
+          else { updateDigitPredictionSummary(); updateXdigitsDisplay(); }
+        }catch(e){ console.error('kutAiX toggle error', e); }
+      }); }
       // Wire events
       if (aiTicksEl){ aiTicksEl.addEventListener('change', ()=>{ try{ appState.kutAiX.analysisTicks = Math.max(1, Math.min(100, Number(aiTicksEl.value)||20)); updateKutAiXDigitPanel(appState.symbol || document.getElementById('xdigits-market-options')?.value); updateXdigitsDisplay(); }catch(_){ } }); }
       if (confEl){ confEl.addEventListener('change', ()=>{ try{ appState.kutAiX.confidenceFilter = Math.max(0, Math.min(100, Number(confEl.value)||0)); updateKutAiXStats(); updateDigitPredictionSummary(); }catch(_){ } }); }
-      if (threshEl){ threshEl.addEventListener('change', ()=>{ try{ if (!appState.kutMilzAi) appState.kutMilzAi = {}; const v = Number(threshEl.value); if (!Number.isNaN(v)){ appState.kutMilzAi.barrier = Math.max(0, Math.min(9, parseInt(v,10))); appState.kutMilzAi._manualBarrier = true; updateXdigitsDisplay(); updateKutAiXDigitPanel(appState.symbol || document.getElementById('xdigits-market-options')?.value); } }catch(_){ } }); }
-      if (intelBtn){ intelBtn.addEventListener('click', ()=>{ try{ appState.kutAiX.intelligentBarrier = !appState.kutAiX.intelligentBarrier; intelBtn.textContent = appState.kutAiX.intelligentBarrier ? 'AUTO' : 'MANUAL'; if (appState.kutAiX.intelligentBarrier){ if (appState.kutMilzAi) delete appState.kutMilzAi.barrier; } else { if (threshEl){ appState.kutMilzAi = appState.kutMilzAi||{}; appState.kutMilzAi.barrier = Number(threshEl.value)||0; appState.kutMilzAi._manualBarrier = true; } } updateXdigitsDisplay(); }catch(_){ } }); }
+      if (threshEl){ threshEl.addEventListener('change', ()=>{ try{ if (!appState.kutAiX) appState.kutAiX = {}; const v = Number(threshEl.value); if (!Number.isNaN(v)){ appState.kutAiX.digitThreshold = v; try{ safeSetItem('kutAiX_digitThreshold', String(v)); }catch(_){ try{ localStorage.setItem('kutAiX_digitThreshold', String(v)); }catch(_){} } /* keep backward compatibility: if user intentionally sets an integer 0-9, also update manual barrier */ if (!appState.kutMilzAi) appState.kutMilzAi = {}; if (Number.isInteger(v) && v >=0 && v <=9){ appState.kutMilzAi.barrier = parseInt(v,10); appState.kutMilzAi._manualBarrier = true; if (appState.kutMilzAi._rushxBarrierLocked) delete appState.kutMilzAi._rushxBarrierLocked; } updateXdigitsDisplay(); updateKutAiXDigitPanel(appState.symbol || document.getElementById('xdigits-market-options')?.value); } }catch(_){ } }); }
+      
+      // RushX UI wiring
+      try{
+        const rMax = document.getElementById('rushx-max-trades');
+        const rCd = document.getElementById('rushx-cooldown-ms');
+        if (typeof appState.rushXAiMaxTrades === 'undefined') appState.rushXAiMaxTrades = Number(rMax?.value || 10);
+        if (typeof appState.rushXAiCooldownMs === 'undefined') appState.rushXAiCooldownMs = Number(rCd?.value || 1000);
+        if (rMax) rMax.addEventListener('change', ()=>{ try{ appState.rushXAiMaxTrades = Math.max(1, Math.min(100, Number(rMax.value||10))); const rem = (appState._rushXAi && appState._rushXAi.tradesThisRun) ? Math.max(0, appState.rushXAiMaxTrades - appState._rushXAi.tradesThisRun) : appState.rushXAiMaxTrades; const el = document.getElementById('rushx-remaining'); if (el) el.textContent = String(rem); }catch(_){ } });
+        if (rCd) rCd.addEventListener('change', ()=>{ try{ appState.rushXAiCooldownMs = Math.max(100, Math.min(10000, Number(rCd.value||1000))); }catch(_){ } });
+        // initialize display
+        try{ const el = document.getElementById('rushx-remaining'); if (el) el.textContent = String(appState.rushXAiMaxTrades || 10); }catch(_){ }
+      }catch(e){ /* ignore */ }
     }catch(e){ console.error('KutAiX control wiring failed', e); }
     // Re-seed KutAiX when the user changes selected market (only while bot is running)
     try{
@@ -8230,7 +8559,7 @@ try{
     const rushxaProceed = document.getElementById('rushxa-proceed');
     const rushxaModal = document.getElementById('rushxa-warning-modal');
     if (rushxaStepBack){ rushxaStepBack.addEventListener('click', ()=>{ try{ if (rushxaModal) rushxaModal.style.display='none'; showToast && showToast('RuShXA Mode cancelled - Good choice!'); }catch(e){} }); }
-    if (rushxaProceed){ rushxaProceed.addEventListener('click', ()=>{ try{ appState.rushXAiEnabled = true; const chk = document.getElementById('rushXAiToggle'); if (chk) chk.checked = true; if (rushxaModal) rushxaModal.style.display='none'; logLine("RuShXAi Mode: ON"); if (typeof UAE_showTimedPopup === 'function') { UAE_showTimedPopup('🚀 RuShXA ACTIVATED! AI observation mode engaged. News/event pauses AND time restrictions overridden. Two consecutive losses trigger 120-second cooldown. Remember: high reward = high risk!', 15000); } updateUI(); showToast && showToast('RuShXA Mode enabled - Use with extreme caution!'); }catch(e){} }); }
+    if (rushxaProceed){ rushxaProceed.addEventListener('click', ()=>{ try{ appState.rushXAiEnabled = true; const chk = document.getElementById('rushXAiToggle'); if (chk) chk.checked = true; if (rushxaModal) rushxaModal.style.display='none'; logLine("RuShXAi Mode: ON"); try{ appState._rushXAi = { tradesThisRun:0, lastTradeAt:0, active:true }; }catch(_){ } if (typeof UAE_showTimedPopup === 'function') { UAE_showTimedPopup('🚀 RuShXA ACTIVATED! AI observation mode engaged. News/event pauses AND time restrictions overridden. Two consecutive losses trigger 120-second cooldown. Remember: high reward = high risk!', 15000); } updateUI(); showToast && showToast('RuShXA Mode enabled - Use with extreme caution!'); }catch(e){} }); }
 
     // BestX Auto Selection modal wiring
     const bestxBtn = document.getElementById('bestx-btn');
@@ -8841,6 +9170,10 @@ function updateConfidenceUI(){
 
 // Compute KutAiX digit analysis
 function computeKutAiXAnalysis() {
+  // If ACCU (Accumulator) mode is active, disable KutAiX analysis
+  if (appState.accu && appState.accu.enabled) return null;
+  // If module-level KutAiX is disabled, skip analysis
+  if (appState.kutAiX && appState.kutAiX.enabled === false) return null;
   // Implement KutAiX single-source-of-truth rules (barrier-based raw frequency engine)
   // Prefer per-market KutAiX window if available (seeded at start), otherwise global lastDigits
   const selectedMarket = appState.symbol || (document.getElementById('xdigits-market-options')?.value) || null;
@@ -8900,6 +9233,13 @@ function computeKutAiXAnalysis() {
 
 // Update KutAiX UI with live stats and analysis
 function updateKutAiXStats() {
+  // If ACCU is active or module disabled, show OFF and skip heavy updates
+  if ((appState.accu && appState.accu.enabled) || (appState.kutAiX && appState.kutAiX.enabled === false)) {
+    if (dom.kutAiXPrediction) dom.kutAiXPrediction.textContent = `Prediction: OFF`;
+    if (dom.kutAiXConfidence) dom.kutAiXConfidence.textContent = ``;
+    if (dom.kutAiXSummaryBadge) { dom.kutAiXSummaryBadge.textContent = 'OFF'; dom.kutAiXSummaryBadge.className = 'pill bg-slate-600 text-slate-300'; }
+    return;
+  }
   // Determine price source: use confirmed price if auto-confirm is enabled
   let currentPrice, priceSource;
   const autoConfirmEnabled = appState.kutMilzAi && appState.kutMilzAi.autoConfirmPrice;
@@ -8943,6 +9283,38 @@ function updateKutAiXStats() {
   }
   if (dom.kutAiXTicksAnalyzed) dom.kutAiXTicksAnalyzed.textContent = ticksAnalyzed;
 
+  // If AdvanX is present and authoritative for DIGITS/ACCU, surface its outputs and stop local analysis
+  try{
+    if (window.AdvanX && typeof window.AdvanX.getState === 'function'){
+      const adv = window.AdvanX.getState() || {};
+      // expose latest AdvanX state for other modules
+      window.AdvanX.lastState = adv;
+      appState.advanx = adv;
+      // If AdvanX mode matches DIGITS or ACCU, present its outputs and avoid local prediction logic
+      if (adv.mode === 'DIGITS' || adv.mode === 'ACCU'){
+        // Display concise AdvanX summary
+        if (dom.kutAiXPrediction) dom.kutAiXPrediction.textContent = `AdvanX: ${adv.entryBias || 'HOLD'}`;
+        if (dom.kutAiXConfidence) dom.kutAiXConfidence.textContent = `Confidence: ${Number((adv.confidenceScore||0) * 100).toFixed(2)}%`;
+        if (dom.kutAiXBias) dom.kutAiXBias.textContent = adv.marketState || '';
+        if (dom.kutAiXSummaryBadge){
+          const score = Number(adv.confidenceScore||0);
+          let cls = 'bg-slate-600 text-slate-300';
+          if (score >= 0.8) cls = 'bg-green-600 text-white';
+          else if (score >= 0.6) cls = 'bg-yellow-600 text-white';
+          else if (score >= 0.4) cls = 'bg-orange-600 text-white';
+          dom.kutAiXSummaryBadge.textContent = `${adv.marketState||'NEUTRAL'} | ${Math.round((adv.confidenceScore||0)*100)}%`;
+          dom.kutAiXSummaryBadge.className = `pill ${cls}`;
+        }
+
+        // Provide a helper for entry permission checks
+        try{ window.AdvanXAllowEntry = function(){ return !!(adv && adv.entryBias === 'READY' && (adv.marketState === 'FAVORABLE' || adv.marketState === 'STRONG')); }; }catch(_){ }
+
+        // update digit UI but do not use local analysis to decide entries
+        try{ updateDigitPredictionSummary(); }catch(_){ }
+        return;
+      }
+    }
+  }catch(_){ }
   // Update analysis
   const analysis = computeKutAiXAnalysis();
   if (!analysis) {
@@ -9080,6 +9452,14 @@ function updateDigitPredictionSummary() {
   // Unify with computeKutAiXAnalysis so Prediction Output and Digit Prediction Summary match
   const statusEl = document.getElementById('kutAiX-summary-status');
   try{
+    // Respect ACCU and module-level disable — avoid computing/presenting predictions when ACCU is on or module is off
+    if ((appState.accu && appState.accu.enabled) || (appState.kutAiX && appState.kutAiX.enabled === false)){
+      if (statusEl) statusEl.textContent = 'OFF';
+      // clear digit UI placeholders
+      try{ for(let i=0;i<10;i++){ const el = document.getElementById('xdigit-'+i+'-pred'); if(el){ el.textContent = '--'; el.dataset.rawPercent = ''; } } }catch(_){}
+      return;
+    }
+
     const analysis = computeKutAiXAnalysis();
     // If analysis unavailable, fall back to previous AI/local fallback logic
     if (!analysis) {
@@ -9242,7 +9622,7 @@ function stopBot(){
   appState.isAuthenticated = false;
   appState.isApiConnected = false;
   appState.isEntryInProgress = false;
-  appState.currentContractId = null;
+  appState.activeContracts = [];
   appState.isSelling = false;
   appState.tickBuffer = [];
   appState.cooldownUntil = 0;
@@ -9311,7 +9691,6 @@ function startBot(){
   appState.consecutiveWins = 0;
   appState.consecutiveLosses = 0;
   appState.tradeCounter = 0;
-  appState.currentContractId = null;
   appState.isEntryInProgress = false;
   appState.isSelling = false;
   appState.cooldownUntil = 0;
@@ -9321,6 +9700,7 @@ function startBot(){
   appState.chart.lastOHLC = null;
   appState.chart.hasTick = false;
   appState.lastDigits = [];
+  appState.activeContracts = [];
 
   // 
 // PRICE ACTION: reset candle history on start
@@ -9335,6 +9715,8 @@ function startBot(){
   updateLoss(appState.sessionLoss);
 
   appState.isBotRunning = true;
+  // Reset RuShXAi batch counters on bot start
+  try{ appState._rushXAi = { tradesThisRun: 0, lastTradeAt: 0, active: false }; }catch(_){ }
   logLine("Bot started - trading active.");
   updateUI();
 
@@ -9618,7 +10000,50 @@ function handleResponse(res){
             const maxLen = Math.max(1, Math.min(100, Number(appState.kutAiX.analysisTicks || 20)));
             while(w.length > maxLen) w.shift();
             // update digit panel live for selected market
-            try{ updateKutAiXDigitPanel(selectedMarket); }catch(_){ }
+            try{ 
+              updateKutAiXDigitPanel(selectedMarket);
+              try{
+                if (window.AdvanX && typeof window.AdvanX.onTick === 'function'){
+                  window.AdvanX.onTick({ price: price, time: appState.lastTickAt || Date.now(), digit: lastNum });
+                  try{
+                    const s = window.AdvanX.getState();
+                    const el = document.getElementById('advanx-status-badge');
+                    if (el){
+                      const score = (Number(s.confidenceScore||0) * 100).toFixed(0);
+                      const stateText = s.marketState || 'NEUTRAL';
+                      el.textContent = `AdvanX: ${stateText} ${score}%`;
+                      el.className = 'pill text-xs text-white';
+                      if (s.marketState === 'STRONG') el.classList.add('bg-green-600');
+                      else if (s.marketState === 'FAVORABLE') el.classList.add('bg-amber-600');
+                      else if (s.marketState === 'NEUTRAL') el.classList.add('bg-slate-600');
+                      else el.classList.add('bg-red-600');
+                    }
+                    // Update details panel
+                    try{
+                      const cEl = document.getElementById('advanx-confidence');
+                      const bEl = document.getElementById('advanx-entry-bias');
+                      const rEl = document.getElementById('advanx-risk-flags');
+                      if (cEl) cEl.textContent = `${(Number(s.confidenceScore||0)*100).toFixed(1)}%`;
+                      if (bEl) bEl.textContent = (s.entryBias || 'HOLD');
+                      if (rEl) rEl.textContent = (s.riskFlags && s.riskFlags.length) ? s.riskFlags.join(', ') : 'None';
+                    }catch(_){ }
+                      // Update authoritative indicator
+                      try{
+                        const aEl = document.getElementById('advanx-authoritative-badge');
+                        if (aEl){
+                          if (s.mode){
+                            aEl.textContent = 'AUTH';
+                            aEl.className = 'pill text-xs text-white bg-indigo-600 ml-2';
+                          } else {
+                            aEl.textContent = 'STANDBY';
+                            aEl.className = 'pill text-xs text-white bg-slate-600 ml-2';
+                          }
+                        }
+                      }catch(_){ }
+                  }catch(_){ }
+                }
+              }catch(_){ }
+            }catch(_){ }
           }catch(_){ }
         }
       }catch(_){ }
@@ -9766,19 +10191,19 @@ function handleResponse(res){
     case "buy":{
       appState.isEntryInProgress = false;
       appState.pendingProposalId = null;
-      appState.currentContractId = res.buy.contract_id;
+      // Support multiple active contracts: add to activeContracts list
+      try{
+        const contractId = res.buy.contract_id;
+        // Use recorded requested stakes queue if available (preserve explicit stake passed to enterTrade)
+        let requested = null;
+        try{ if (appState._requestedStakes && appState._requestedStakes.length) requested = appState._requestedStakes.shift(); }catch(_){ requested = null; }
+        const usedStake = (requested && Number(requested.stake)) ? Number(requested.stake) : appState.stakeAmount;
+        const usedSymbol = (requested && requested.symbol) ? requested.symbol : (appState.currentSymbolAtEntry || appState.symbol || "UNKNOWN");
+        addActiveContract({ contract_id: contractId, symbol: usedSymbol, direction: appState.currentDirection || "UNKNOWN", stake: usedStake, profit: 0, entryTime: Date.now(), is_sellable: false });
+      }catch(e){ console.error('Failed to register active contract', e); }
       initTradeMgmtForNewContract();
       updateTradeStatus("Contract Active", "bg-indigo-600 text-white");
-      logLine("Bought contract: " + appState.currentContractId);
-      
-      // Update current trade display
-      updateCurrentTradeDisplay({
-        symbol: appState.currentSymbolAtEntry || appState.symbol || "UNKNOWN",
-        direction: appState.currentDirection || "UNKNOWN",
-        stake: appState.stakeAmount,
-        profit: 0,
-        contractId: appState.currentContractId
-      });
+      logLine("Bought contract: " + (res.buy && res.buy.contract_id));
       break;
     }
 
@@ -9789,20 +10214,17 @@ function handleResponse(res){
       setSellable(c.is_sellable);
       
       // Update current trade display when sellable status changes
-      if (appState.currentContractId && c.contract_id === appState.currentContractId) {
-        updateCurrentTradeDisplay({
-          symbol: appState.currentSymbolAtEntry || appState.symbol || "UNKNOWN",
-          direction: appState.currentDirection || "UNKNOWN",
-          stake: appState.stakeAmount,
-          profit: Number(c.profit || 0),
-          contractId: appState.currentContractId
-        });
+      const idx = findActiveContractIndex(c.contract_id);
+      if (idx >= 0) {
+        // update stored contract profit and sellable flag
+        updateActiveContract(c.contract_id, { profit: Number(c.profit || 0), is_sellable: !!c.is_sellable });
       }
 
-      if (appState.currentContractId && c.contract_id === appState.currentContractId){
+      if (idx >= 0) {
         if (c.is_sold === 1){
           const profit = Number(c.sell_price) - Number(c.buy_price);
 
+          // Update session totals
           appState.sessionProfit += profit;
           if (profit < 0) appState.sessionLoss += Math.abs(profit);
 
@@ -9824,35 +10246,43 @@ function handleResponse(res){
           // Stop bot if any session limit is hit
           checkSessionLimitsAndMaybeStop();
 
-
-          const sym = appState.currentSymbolAtEntry || appState.symbol || "UNKNOWN";
-          const dir = appState.currentDirection || "UNKNOWN";
+          const sym = (appState.activeContracts[idx] && appState.activeContracts[idx].symbol) || appState.currentSymbolAtEntry || appState.symbol || "UNKNOWN";
+          const dir = (appState.activeContracts[idx] && appState.activeContracts[idx].direction) || appState.currentDirection || "UNKNOWN";
           const pnl = (profit >= 0 ? "+" : "") + profit.toFixed(2);
           txLogLine(`CLOSED | ${sym} | ${dir} | ${pnl}`);
 
-          appState.currentContractId = null;
+          // Remove the closed contract from active list
+          removeActiveContract(c.contract_id);
+
+          // Reset selling flag for this closure
           appState.isSelling = false;
           if (appState.sellTimeout) {
             clearTimeout(appState.sellTimeout);
             appState.sellTimeout = null;
           }
-          appState.tickBuffer = [];
-          appState.tradeCounter = 0;
 
-          appState.currentDirection = null;
-          appState.currentSymbolAtEntry = null;
-          
-          // Hide current trade display
-          hideCurrentTradeDisplay();
+          // If no more active contracts, clear per-entry state and require cooldown/warmup
+          if (getActiveContractsCount() === 0){
+            appState.tickBuffer = [];
+            appState.tradeCounter = 0;
+            appState.currentDirection = null;
+            appState.currentSymbolAtEntry = null;
+            // Hide current trade display
+            hideCurrentTradeDisplay();
 
-          appState.cooldownUntil = Date.now() + (appState.cooldownDuration * 1000);
-          // After cooldown finishes, require a few fresh ticks before entering new trades
-          appState.requireMarketWarmup = true;
-          appState.warmupTicksSeen = 0;
-          if (dom.blockReasonDisplay) dom.blockReasonDisplay.textContent = "Cooldown";
-          updateTradeStatus("Trade Closed. Cooldown...", "bg-orange-500 text-white");
+            appState.cooldownUntil = Date.now() + (appState.cooldownDuration * 1000);
+            // After cooldown finishes, require a few fresh ticks before entering new trades
+            appState.requireMarketWarmup = true;
+            appState.warmupTicksSeen = 0;
+            if (dom.blockReasonDisplay) dom.blockReasonDisplay.textContent = "Cooldown";
+            updateTradeStatus("Trade Closed. Cooldown...", "bg-orange-500 text-white");
+          } else {
+            // Informational: still have active contracts
+            updateTradeStatus(`${getActiveContractsCount()} active trades`, "bg-indigo-600 text-white");
+            logLine(`${getActiveContractsCount()} active trades remaining after close.`);
+          }
+
           logLine("Trade closed. P/L: " + profit.toFixed(2));
-
 
           // AI trade outcome feed (safety-only)
           aiLayer.onTradeClosed(profit, Date.now());
@@ -9945,16 +10375,46 @@ function checkAndEnterTrade(){
   try{
     const isDigitOnlyMode = !!((appState.kutAiX && appState.kutAiX.enabled) || (appState.kutMilzAi && appState.kutMilzAi.mode === 'xdigits'));
     if (appState.rushXAiEnabled && isDigitOnlyMode){
-      const direction = getMomentumDirection() || 'CALL';
-      const stake = getEffectiveStake();
-      let tradeSymbol = appState.symbol;
-      if (appState.milzxai?.enabled && appState.milzxai.markets?.length > 0) {
-        tradeSymbol = appState.milzxai.markets[appState.milzxai.currentIndex];
-      }
-      logLine('[RuShXA] Mode active: bypassing gating and entering trade immediately (digits-only)');
-      // skipGuards=true to avoid AI and other safety gates
-      enterTrade(direction, stake, tradeSymbol, true);
-      return;
+        // RuShXAi batch mode for digits when Auto Trading is enabled
+        // Limit: configurable max trades per activation, with configurable cooldown between each trade
+        try{
+          if (!appState._rushXAi) appState._rushXAi = { tradesThisRun:0, lastTradeAt:0, active:true };
+          const MAX_RUSH_TRADES = Number(appState.rushXAiMaxTrades || 10);
+          const COOLDOWN_MS = Number(appState.rushXAiCooldownMs || 1000);
+        if (appState._rushXAi.tradesThisRun >= MAX_RUSH_TRADES){
+          if (dom.blockReasonDisplay) dom.blockReasonDisplay.textContent = 'RuShXA: max batch trades reached';
+          return;
+        }
+        const now = Date.now();
+        if ((now - (appState._rushXAi.lastTradeAt || 0)) < COOLDOWN_MS){
+          if (dom.blockReasonDisplay) dom.blockReasonDisplay.textContent = 'RuShXA: cooldown';
+          return;
+        }
+
+        // Determine trade parameters
+        const direction = getMomentumDirection() || 'CALL';
+        const stake = getEffectiveStake();
+        let tradeSymbol = appState.symbol;
+        if (appState.milzxai?.enabled && appState.milzxai.markets?.length > 0) {
+          tradeSymbol = appState.milzxai.markets[appState.milzxai.currentIndex];
+        }
+
+        // Respect user barrier: lock usage of current barrier until user toggles it off
+        try{
+          if (appState.kutMilzAi) appState.kutMilzAi._rushxBarrierLocked = true;
+        }catch(_){ }
+
+        // Mark trade attempt and record timestamp
+        appState._rushXAi.tradesThisRun = (appState._rushXAi.tradesThisRun || 0) + 1;
+        appState._rushXAi.lastTradeAt = now;
+        // Update remaining display if present
+        try{ const el = document.getElementById('rushx-remaining'); if (el) el.textContent = String(Math.max(0, MAX_RUSH_TRADES - appState._rushXAi.tradesThisRun)); }catch(_){ }
+        logLine(`[RuShXA] Batch trade ${appState._rushXAi.tradesThisRun}/${MAX_RUSH_TRADES} - Entering trade`);
+
+        // skipGuards=true to avoid AI and other safety gates but still use barrier mapping
+        enterTrade(direction, stake, tradeSymbol, true);
+        return;
+      }catch(e){ console.error('RuShXA batch failed', e); }
     }
   }catch(e){ console.error('RuShXA bypass check failed', e); }
 
@@ -9994,7 +10454,7 @@ function checkAndEnterTrade(){
     if (dom.blockReasonDisplay) dom.blockReasonDisplay.textContent = "Entry In Progress";
     return;
   }
-  if (appState.currentContractId){
+  if (!canEnterNewTrade()){
     if (dom.blockReasonDisplay) dom.blockReasonDisplay.textContent = "Trade Active";
     return;
   }
@@ -10143,11 +10603,34 @@ function checkAndEnterTrade(){
     console.debug(`[MILZXAI] Using market: ${tradeSymbol} (index ${appState.milzxai.currentIndex})`);
   }
 
+  // Final authoritative gate: consult AdvanX (if present). Some modes (e.g. RuShXA with skipGuards) intentionally bypass gates.
+  try{
+    if (window.AdvanX && typeof window.AdvanXAllowEntry === 'function'){
+      const advAllow = window.AdvanXAllowEntry(direction);
+      if (!advAllow){
+        if (dom.blockReasonDisplay) dom.blockReasonDisplay.textContent = 'AdvanX blocked';
+        return;
+      }
+    }
+  }catch(e){ console.error('AdvanX gate check failed', e); }
+
   enterTrade(direction, stake, tradeSymbol);
 }
 
 function enterTrade(direction, stake, tradeSymbol = appState.symbol, skipGuards = false){
   if (!appState.ws || !appState.isAuthenticated) return;
+
+  // AdvanX authoritative gate: if AdvanX denies entry, stop here (unless skipping guards)
+  try{
+    if (!skipGuards && window.AdvanX && typeof window.AdvanXAllowEntry === 'function'){
+      const advAllow = window.AdvanXAllowEntry(direction);
+      if (!advAllow){
+        if (dom.blockReasonDisplay) dom.blockReasonDisplay.textContent = 'AdvanX blocked';
+        updateTradeStatus("BLOCKED (AdvanX)", "bg-slate-700 text-slate-200");
+        return;
+      }
+    }
+  }catch(e){ console.error('AdvanX gate check failed', e); }
 
 
   // AI safety gate (does NOT change strategy)
@@ -10189,6 +10672,8 @@ function enterTrade(direction, stake, tradeSymbol = appState.symbol, skipGuards 
 
   appState.isEntryInProgress = true;
   appState.pendingProposalId = null;
+  // Record requested stake/symbol so confirmation handlers can attribute correct stake (useful for bulk/multi-symbol flows)
+  try{ if (!appState._requestedStakes) appState._requestedStakes = []; appState._requestedStakes.push({ stake, symbol: tradeSymbol }); }catch(_){ }
   appState.tickBuffer = [];
   updateTradeStatus((appState.accu && appState.accu.enabled) ? "Creating Proposal (ACCU)..." : `Creating Proposal (${direction})...`, "bg-orange-500 text-white");
 
@@ -10232,7 +10717,7 @@ function enterTrade(direction, stake, tradeSymbol = appState.symbol, skipGuards 
 
   setTimeout(() => {
     if (!appState.isBotRunning) return;
-    if (appState.currentContractId) return;
+    if (getActiveContractsCount() > 0) return;
     if (appState.isEntryInProgress){
       appState.isEntryInProgress = false;
       updateTradeStatus("Monitoring Ticks...", "bg-yellow-600 text-white");
@@ -10276,11 +10761,11 @@ function updateCurrentTradeDisplay(tradeInfo) {
   
   if (dom.currentTradeSellBtn) {
     // Allow manual sell as soon as a trade exists; only disable if no contract or already selling
-    const shouldDisable = !appState.currentContractId || appState.isSelling;
+    const shouldDisable = (!appState.activeContracts || appState.activeContracts.length === 0) || appState.isSelling;
     dom.currentTradeSellBtn.disabled = shouldDisable;
 
     // Add visual feedback
-    if (shouldDisable && !appState.currentContractId) {
+    if (shouldDisable && (!appState.activeContracts || appState.activeContracts.length === 0)) {
       dom.currentTradeSellBtn.title = "No active contract";
     } else if (shouldDisable && appState.isSelling) {
       dom.currentTradeSellBtn.title = "Selling in progress...";
@@ -10298,6 +10783,116 @@ function hideCurrentTradeDisplay() {
   if (dom.patternTakeIndicator) {
     dom.patternTakeIndicator.classList.add('hidden');
   }
+}
+
+// --- Multi-contract helpers ---
+function ensureActiveContracts(){ if (!appState.activeContracts) appState.activeContracts = []; }
+function findActiveContractIndex(contractId){ ensureActiveContracts(); return appState.activeContracts.findIndex(c => String(c.contract_id) === String(contractId)); }
+function addActiveContract(obj){ ensureActiveContracts(); appState.activeContracts.push(obj); updateActiveTradesUI(); }
+function updateActiveContract(contractId, patch){ const i = findActiveContractIndex(contractId); if (i>=0){ appState.activeContracts[i] = Object.assign({}, appState.activeContracts[i], patch); updateActiveTradesUI(); } }
+function removeActiveContract(contractId){ ensureActiveContracts(); const i = findActiveContractIndex(contractId); if (i>=0){ appState.activeContracts.splice(i,1); updateActiveTradesUI(); } }
+function getActiveContractsCount(){ ensureActiveContracts(); return appState.activeContracts.length; }
+function canEnterNewTrade(){ const limit = Number(appState.maxConcurrentContracts || 1); return getActiveContractsCount() < limit && !appState.isEntryInProgress; }
+
+function updateActiveTradesUI(){
+  ensureActiveContracts();
+  const cnt = appState.activeContracts.length;
+  if (!dom.currentTradeSection) return;
+  if (cnt === 0){ hideCurrentTradeDisplay(); return; }
+  // If only one active contract, render into the existing fields for compatibility
+  if (cnt === 1){
+    const t = appState.activeContracts[0];
+    updateCurrentTradeDisplay({ symbol: t.symbol, direction: t.direction, stake: t.stake, profit: t.profit, contractId: t.contract_id });
+    return;
+  }
+  // Multiple active contracts: show a compact list inside currentTradeSection
+  dom.currentTradeSection.style.display = 'block';
+  // Clear single-field displays if present
+  if (dom.currentTradeSymbol) dom.currentTradeSymbol.textContent = `${cnt} active trades`;
+  if (dom.currentTradeDirection) dom.currentTradeDirection.textContent = '';
+  if (dom.currentTradeStake) dom.currentTradeStake.textContent = '';
+  if (dom.currentTradeProfit) dom.currentTradeProfit.textContent = '';
+
+  // Create or update a list container
+  let list = document.getElementById('current-trade-list');
+  if (!list){ list = document.createElement('div'); list.id = 'current-trade-list'; list.style.marginTop = '6px'; dom.currentTradeSection.appendChild(list); }
+  // Build list
+  const html = appState.activeContracts.map(c => {
+    const profit = (c.profit || 0); const pnl = (profit>=0?'+':'') + profit.toFixed(2);
+    return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03)">`+
+      `<div style="flex:1">${c.symbol||'-'} • ${c.direction||'-'} • $${(c.stake||0).toFixed(2)}</div>`+
+      `<div style="min-width:120px;text-align:right">${pnl} <button data-cid="${c.contract_id}" class="sell-contract-btn" style="margin-left:8px">SELL</button></div>`+
+      `</div>`;
+  }).join('');
+  list.innerHTML = html;
+  // Wire sell buttons
+  Array.from(list.querySelectorAll('.sell-contract-btn')).forEach(b => {
+    b.onclick = (ev) => { const id = ev.currentTarget.getAttribute('data-cid'); if (!id) return; if (appState.isSelling) { logLine('Sell already in progress'); return; } logLine('Manual sell requested for ' + id); sellSpecificContract(id); };
+  });
+}
+
+function sellSpecificContract(contractId){ if (!appState.ws) return; try{ appState.isSelling = true; appState.ws.send(JSON.stringify({ sell: contractId, price: 0 })); logLine('Sell request sent for ' + contractId); }catch(e){ console.error(e); appState.isSelling = false; } }
+
+// ----------------
+// Bulk trade scheduler
+// ----------------
+function startBulkTrades(){
+  try{
+    if (!appState.isAuthenticated) { logLine('Bulk start blocked: not connected'); return; }
+    const count = Math.max(1, parseInt((dom.bulkTradesCount && dom.bulkTradesCount.value) || 0) || 0);
+    const stake = Math.max(0.01, parseFloat((dom.bulkStake && dom.bulkStake.value) || appState.stakeAmount) || appState.stakeAmount);
+    const cooldown = Math.max(0, parseInt((dom.bulkCooldownMs && dom.bulkCooldownMs.value) || 1000) || 1000);
+
+    // Determine markets: prefer MILZXAI configured markets when enabled
+    let markets = [];
+    if (appState.milzxai && appState.milzxai.enabled && Array.isArray(appState.milzxai.markets) && appState.milzxai.markets.length > 0) {
+      markets = appState.milzxai.markets.slice();
+    } else {
+      markets = [appState.symbol];
+    }
+
+    // Build queue (round-robin markets)
+    const queue = [];
+    for (let i=0;i<count;i++){
+      const m = markets[i % markets.length];
+      queue.push({ symbol: m, stake });
+    }
+
+    // Initialize bulk state
+    appState._bulk = { queue, running:true, remaining: queue.length, cooldownMs: cooldown, lastPlaced:0, cancel:false };
+    if (dom.bulkRemaining) dom.bulkRemaining.textContent = String(appState._bulk.remaining);
+    logLine(`Bulk: Starting ${queue.length} trades across ${markets.length} market(s) (source: ${appState.milzxai?.enabled ? 'MILZXAI' : 'current symbol'})`);
+    processBulkQueue();
+  }catch(e){ console.error('startBulkTrades', e); }
+}
+
+function stopBulkTrades(){ try{ if (!appState._bulk) return; appState._bulk.cancel = true; appState._bulk.running = false; appState._bulk.queue = []; if (dom.bulkRemaining) dom.bulkRemaining.textContent = '0'; logLine('Bulk: Cancelled'); }catch(e){console.error(e);} }
+
+async function processBulkQueue(){
+  if (!appState._bulk || !appState._bulk.running) return;
+  while (appState._bulk.queue.length && appState._bulk.running && !appState._bulk.cancel){
+    // Wait until we can enter a new trade (concurrency limit)
+    if (!canEnterNewTrade()){
+      await new Promise(r => setTimeout(r, 200));
+      continue;
+    }
+    const item = appState._bulk.queue.shift();
+    // Decide direction at placement time
+    let dir = getMomentumDirection(); if (!dir) dir = 'CALL';
+    try{
+      enterTrade(dir, item.stake, item.symbol);
+      appState._bulk.lastPlaced = Date.now();
+      appState._bulk.remaining = appState._bulk.queue.length;
+      if (dom.bulkRemaining) dom.bulkRemaining.textContent = String(appState._bulk.remaining);
+      logLine(`Bulk: Placed trade for ${item.symbol} $${item.stake.toFixed(2)}`);
+    }catch(e){ console.error('Bulk trade failed', e); }
+    // Cooldown between placements
+    await new Promise(r => setTimeout(r, appState._bulk.cooldownMs || 1000));
+  }
+  // Finished or cancelled
+  if (appState._bulk && !appState._bulk.cancel){ logLine('Bulk: Completed'); }
+  appState._bulk = null;
+  if (dom.bulkRemaining) dom.bulkRemaining.textContent = '0';
 }
 
 // Check for winning patterns and show TAKE indicator
@@ -10337,30 +10932,24 @@ function checkWinningPatterns(symbol, direction, currentProfit) {
 function checkProfitAndLoss(contract){
   const currentProfit = Number(contract.profit);
 
-  // Update current trade display
-  if (appState.currentContractId && contract.contract_id === appState.currentContractId) {
-    updateCurrentTradeDisplay({
-      symbol: appState.currentSymbolAtEntry || appState.symbol || "UNKNOWN",
-      direction: appState.currentDirection || "UNKNOWN",
-      stake: appState.stakeAmount,
-      profit: currentProfit,
-      contractId: appState.currentContractId
-    });
-    
-    // Check for winning patterns
-    checkWinningPatterns(appState.currentSymbolAtEntry || appState.symbol, appState.currentDirection, currentProfit);
+  // Update stored contract profit if we track this contract
+  const idx = findActiveContractIndex(contract.contract_id);
+  if (idx >= 0){
+    updateActiveContract(contract.contract_id, { profit: currentProfit });
+    const stored = appState.activeContracts[idx] || {};
+    checkWinningPatterns(stored.symbol || appState.currentSymbolAtEntry || appState.symbol, stored.direction || appState.currentDirection, currentProfit);
   }
 
   if (!appState.autoSellEnabled) return;
 
   //  Optional trade management (non-invasive). If it triggers, it sells and returns.
-  if (appState.currentContractId){
-    if (applyTradeManagement(currentProfit, contract)) return;
+  if (idx >= 0){
+    if (applyTradeManagement(currentProfit, contract)) { sellSpecificContract(contract.contract_id); return; }
   }
 
   // Default TP behavior (unchanged)
   if (currentProfit >= appState.tpUSD){
-    sellContract();
+    if (idx >= 0) sellSpecificContract(contract.contract_id); else sellContract();
     return;
   }
 
@@ -10368,7 +10957,7 @@ function checkProfitAndLoss(contract){
   if (appState.isSafeMode){
     const lossThreshold = -Math.abs(appState.slUSD);
     if (currentProfit <= lossThreshold){
-      sellContract();
+      if (idx >= 0) sellSpecificContract(contract.contract_id); else sellContract();
     }
   }
 }
@@ -10379,11 +10968,6 @@ function sellContract(){
     return;
   }
   
-  if (!appState.currentContractId) {
-    logLine("Sell: No active contract to sell");
-    return;
-  }
-
   // Allow immediate sell attempt, even if API hasn't marked as sellable yet
   if (appState.is_sellable !== 1){
     logLine("Sell: Contract not marked sellable (is_sellable=" + appState.is_sellable + ") - attempting immediate sell");
@@ -10398,8 +10982,12 @@ function sellContract(){
   updateTradeStatus("Selling...", "bg-red-500 text-white");
   
   try {
-    appState.ws.send(JSON.stringify({ sell: appState.currentContractId, price: 0 }));
-    logLine("Sell requested for contract: " + appState.currentContractId);
+    // Choose contract to sell: use the most recent active contract (latest)
+    ensureActiveContracts();
+    const toSell = (appState.activeContracts.length ? appState.activeContracts[appState.activeContracts.length-1].contract_id : null);
+    if (!toSell){ logLine('Sell: No contract id available'); appState.isSelling = false; return; }
+    appState.ws.send(JSON.stringify({ sell: toSell, price: 0 }));
+    logLine("Sell requested for contract: " + toSell);
     
     // Set timeout for sell operation (10 seconds)
     appState.sellTimeout = setTimeout(() => {
@@ -10495,7 +11083,7 @@ function manualPlaceTrade(mult=1){
     updateTradeStatus("Connect first.", "bg-red-600 text-white");
     return;
   }
-  if (appState.currentContractId || appState.isEntryInProgress){
+  if (!canEnterNewTrade()){
     logLine("Manual trade blocked: trade already active.");
     return;
   }
@@ -10545,7 +11133,7 @@ window.kutMilzAiManualTrade = function(typeOrDigit, forcedDirection){
     updateTradeStatus("Connect first.", "bg-red-600 text-white");
     return;
   }
-  if (appState.currentContractId || appState.isEntryInProgress){
+  if (!canEnterNewTrade()){
     logLine("[KutMilzAi] Manual trade blocked: trade already active.");
     return;
   }
@@ -10836,6 +11424,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dom.accuToggle.addEventListener("change", () => {
         appState.accu.enabled = !!dom.accuToggle.checked;
         updateUI();
+        try{ refreshKutAiXControls(); }catch(_){ }
         logLine(`Accumulator: ${appState.accu.enabled ? "ON" : "OFF"}`);
       });
     }
@@ -10879,9 +11468,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (dom.kutAiXDigitThreshold){
       dom.kutAiXDigitThreshold.addEventListener("input", () => {
-        if (!appState.kutAiX) appState.kutAiX = {};
-        appState.kutAiX.digitThreshold = parseInt(dom.kutAiXDigitThreshold.value) || 5;
-        updateKutAiXStats();
+        try{
+          if (!appState.kutAiX) appState.kutAiX = {};
+          const v = Number(dom.kutAiXDigitThreshold.value);
+          appState.kutAiX.digitThreshold = Number.isFinite(v) ? v : (appState.kutAiX.digitThreshold ?? 5);
+          try{ safeSetItem('kutAiX_digitThreshold', String(appState.kutAiX.digitThreshold)); }catch(_){ try{ localStorage.setItem('kutAiX_digitThreshold', String(appState.kutAiX.digitThreshold)); }catch(_){} }
+          updateKutAiXStats();
+        }catch(_){ }
       });
     }
     if (dom.kutAiXConfidenceFilter){
@@ -10891,13 +11484,14 @@ document.addEventListener("DOMContentLoaded", () => {
         updateKutAiXStats();
       });
     }
-    if (dom.kutAiXIntelligentBarrier){
-      dom.kutAiXIntelligentBarrier.addEventListener("click", () => {
+    if (dom.kutAiXToggle){
+      dom.kutAiXToggle.addEventListener("click", () => {
         if (!appState.kutAiX) appState.kutAiX = {};
-        appState.kutAiX.intelligentBarrier = !appState.kutAiX.intelligentBarrier;
-        const on = !!appState.kutAiX.intelligentBarrier;
-        dom.kutAiXIntelligentBarrier.textContent = on ? 'ON' : 'OFF';
-        dom.kutAiXIntelligentBarrier.style.background = on ? '#059669' : '#374151';
+        appState.kutAiX.enabled = !appState.kutAiX.enabled;
+        const on = !!appState.kutAiX.enabled;
+        dom.kutAiXToggle.textContent = on ? 'ON' : 'OFF';
+        dom.kutAiXToggle.style.background = on ? '#059669' : '#374151';
+        try{ safeSetItem('kutAiX_enabled', appState.kutAiX.enabled ? '1' : '0'); }catch(_){ try{ localStorage.setItem('kutAiX_enabled', appState.kutAiX.enabled ? '1' : '0'); }catch(_){} }
         updateKutAiXStats();
       });
     }
@@ -11027,20 +11621,20 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
         e.stopPropagation();
         
-        if (!appState.currentContractId) {
+        ensureActiveContracts();
+        if (!appState.activeContracts || appState.activeContracts.length === 0) {
           logLine("Sell button: No active contract");
           return;
         }
-        
         if (appState.isSelling) {
           logLine("Sell button: Already selling");
           return;
         }
-        
-        // If contract isn't marked sellable yet, still attempt a manual sell
-        // Immediate sell action when button pressed
-        logLine("Sell button clicked - executing immediate sell");
-        sellContract();
+        // Default to selling the latest active contract
+        const toSell = (appState.activeContracts.length ? appState.activeContracts[appState.activeContracts.length-1].contract_id : null);
+        if (!toSell) { logLine('Sell button: No contract id found'); return; }
+        logLine("Sell button clicked - executing immediate sell for " + toSell);
+        sellSpecificContract(toSell);
       });
     }
 
@@ -11210,7 +11804,7 @@ document.addEventListener("DOMContentLoaded", () => {
           logLine("Cannot place trade: Bot not running or not connected");
           return;
         }
-        if (appState.currentContractId) {
+        if (!canEnterNewTrade()) {
           logLine("Manual trade blocked: trade already active.");
           return;
         }
@@ -11221,12 +11815,28 @@ document.addEventListener("DOMContentLoaded", () => {
     
     if (dom.manualSellBtn) {
       dom.manualSellBtn.addEventListener("click", () => {
-        if (!appState.currentContractId) {
+        ensureActiveContracts();
+        if (appState.activeContracts.length === 0) {
           logLine("No active contract to sell");
           return;
         }
-        sellContract();
-        logLine("Manual SELL triggered");
+        // If multiple active contracts, sell the latest by default
+        const toSell = (appState.activeContracts.length === 1) ? appState.activeContracts[0].contract_id : (appState.activeContracts.length ? appState.activeContracts[appState.activeContracts.length-1].contract_id : null);
+        if (!toSell) { logLine('Manual SELL triggered but no contract id found'); return; }
+        sellSpecificContract(toSell);
+        logLine("Manual SELL triggered for " + toSell);
+      });
+    }
+
+    // Bulk trade buttons
+    if (dom.bulkStartBtn) {
+      dom.bulkStartBtn.addEventListener('click', () => {
+        startBulkTrades();
+      });
+    }
+    if (dom.bulkCancelBtn) {
+      dom.bulkCancelBtn.addEventListener('click', () => {
+        stopBulkTrades();
       });
     }
 
@@ -11245,6 +11855,7 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         // Allow disabling without confirmation
         appState.rushXAiEnabled = false;
+        try{ if (appState._rushXAi) appState._rushXAi = { tradesThisRun:0, lastTradeAt:0, active:false }; }catch(_){ }
         logLine("RuShXAi Mode: OFF");
         updateUI();
       }
@@ -12150,204 +12761,74 @@ document.addEventListener("AI_TRADE", e => {
     const greed = document.getElementById("kut-greed-note");
     const draw = document.getElementById("kut-drawdown-popup");
 
-    function hide(el){ el.classList.remove("visible"); }
-    function show(el, duration=null){
-      if(!el) return;
-      el.classList.add("visible");
-      if(duration && duration>0){
-        setTimeout(()=> hide(el), duration);
+    function hide(el){ if(el && el.classList) el.classList.remove('visible'); }
+    function show(el, duration){ if(!el) return; el.classList.add('visible'); if(duration>0) setTimeout(()=>hide(el), duration); }
+
+    // Small helper to safely read window-scope names
+    function firstDefined(names){ for(const n of names){ try{ const v = window[n]; if(typeof v !== 'undefined') return v; }catch(e){} } return undefined; }
+    function getNumberFromCandidates(cands){ const v = firstDefined(cands); if(typeof v === 'number') return v; if(typeof v === 'string' && !isNaN(Number(v))) return Number(v); return undefined; }
+
+    // Ensure module toggle state exists and wire minimal toggle refresh
+    try{
+      if(!appState.kutAiX) appState.kutAiX = {};
+      if (typeof appState.kutAiX.enabled === 'undefined') appState.kutAiX.enabled = true;
+      if (typeof moduleToggle !== 'undefined' && moduleToggle){
+        function refreshKutAiXModuleToggle(){ try{ const on = !!appState.kutAiX.enabled; moduleToggle.textContent = on ? 'ON' : 'OFF'; moduleToggle.classList.toggle('bg-emerald-600', on); moduleToggle.classList.toggle('bg-red-600', !on); moduleToggle.classList.add('text-white'); }catch(_){} }
+        refreshKutAiXModuleToggle();
+        moduleToggle.addEventListener('click', ()=>{ try{ appState.kutAiX.enabled = !appState.kutAiX.enabled; try{ safeSetItem('kutAiX_enabled', appState.kutAiX.enabled ? '1' : '0'); }catch(_){ try{ localStorage.setItem('kutAiX_enabled', appState.kutAiX.enabled ? '1' : '0'); }catch(_){} } refreshKutAiXModuleToggle(); updateKutAiXStats(); updateDigitPredictionSummary(); updateXdigitsDisplay(); }catch(e){ console.error(e); } });
       }
-    }
+    }catch(e){/* ignore */}
 
-    // Close buttons
-    document.querySelectorAll(".kut-risk-popup .kut-close").forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-        const pop = btn.closest(".kut-risk-popup");
-        if(pop) hide(pop);
-      });
-    });
-
-    // Public triggers (call these from your bot when you detect conditions)
-    window.triggerGreedNotePopup = function(opts){
-      // opts: {durationMs: number}
-      const dur = (opts && opts.durationMs) || 10000;
-      show(greed, dur);
-    };
-    window.triggerDrawdownPopup = function(opts){
-      const dur = (opts && opts.durationMs) || 15000;
-      show(draw, dur);
-    };
-
-    // Auto-show greed note once after the welcome popup hides (non-invasive)
-    (function autoGreedAfterWelcome(){
-      // New behavior: wait until the welcome popup hides, then listen for a streak === 3 event.
-      // When the streak reaches 3 for the first time after welcome, show a two-stage message:
-      //  1) softer message (as requested): shown immediately when streak hits 3
-      //  2) final warning message: shown shortly after the first message
-      const welcome = document.getElementById("kut-welcome-popup");
-      let afterWelcome = false;
-      let checkInterval = null;
-
-      function startListeningForStreak(){
-        if(checkInterval) return;
-        checkInterval = setInterval(()=>{
-          try{
-            // look for common streak variable names
-            const streakNames = ["winStreak","streak","consecutiveWins","winsInRow","wins"];
-            let streak = undefined;
-            for(const n of streakNames){
-              try{ const v = window[n]; if(typeof v !== "undefined"){ streak = Number(v); break; } }catch(e){}
-            }
-            // Also accept a provided function
-            const fnCandidates = ["getWinStreak","fetchWinStreak"];
-            if(typeof streak === "undefined"){
-              for(const fn of fnCandidates){
-                try{ if(typeof window[fn] === "function"){ const r = window[fn](); if(typeof r !== "undefined"){ streak = Number(r); break; } }}catch(e){}
-              }
-            }
-
-            if(typeof streak === "number" && !isNaN(streak) && streak >= 3){
-              // show initial softer message as the user requested (first message after welcome)
-              const greed = document.getElementById("kut-greed-note");
-              if(greed){
-                greed.querySelector(".kut-risk-body h4").textContent = "Note — Don't get greedy";
-                greed.querySelector(".kut-risk-body p").textContent = "Remember not to get greedy — if your on three clean wins. Lower your stake if the stake is above 50% of your balance.";
-                // show it for 9 seconds
-                greed.classList.add("visible");
-                setTimeout(()=>{
-                  greed.classList.remove("visible");
-                  // after the softer message, show the final warning message
-                  setTimeout(()=>{
-                    if(greed){
-                      greed.querySelector(".kut-risk-body h4").textContent = "Final Warning — Risk Management Comes First";
-                      greed.querySelector(".kut-risk-body p").textContent = "Remember not to get greedy — you\u2019re on three clean wins. Lower your stake if the stake is above 50% of your balance. Final Warning: Risk Management Comes First.";
-                      greed.classList.add("visible");
-                      // show final warning for 12 seconds
-                      setTimeout(()=>{ greed.classList.remove("visible"); }, 12000);
-                    }
-                  }, 700); // short delay before final warning
-                }, 9000);
-              }
-              // stop checking after first trigger to avoid repeating
-              clearInterval(checkInterval);
-              checkInterval = null;
-            }
-          }catch(e){ /* fail silently */ }
-        }, 1200);
-        // stop listening after 10 minutes as safety
-        setTimeout(()=>{ if(checkInterval) clearInterval(checkInterval); checkInterval = null; }, 1000*60*10);
-      }
-
-      if(welcome){
-        // observe class changes to detect when welcome becomes hidden
-        const obs = new MutationObserver(()=>{
-          if(!welcome.classList.contains("visible")){
-            afterWelcome = true;
-            startListeningForStreak();
-            obs.disconnect();
-          }
-        });
-        obs.observe(welcome, {attributes:true, attributeFilter:['class']});
-      } else {
-        // if no welcome, start listening after DOM ready
-        if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", startListeningForStreak);
-        else startListeningForStreak();
-      }
-    })();
-
-    // --- Simple, safe auto-detection for drawdown / greedy stake ---
-    // This is intentionally conservative: it only reads existing globals if present and won't create or overwrite anything.
-    function firstDefined(names){
-      for(const n of names){
-        try{
-          const v = window[n];
-          if(typeof v !== "undefined") return v;
-        }catch(e){}
-      }
-      return undefined;
-    }
-
-    function getNumberFromCandidates(cands){
-      const v = firstDefined(cands);
-      if(typeof v === "number") return v;
-      if(typeof v === "string" && !isNaN(Number(v))) return Number(v);
-      return undefined;
-    }
-
-    // candidate variable names commonly used by trading UI code
-    const balanceNames = ["balance","accountBalance","currentBalance","funds","walletBalance"];
-    const stakeNames = ["stake","currentStake","betAmount","wager"];
-    const streakNames = ["winStreak","streak","consecutiveWins","winsInRow"];
-    const startingBalanceNames = ["startingBalance","initialBalance","startingAccountBalance"];
-
-    // detection thresholds
-    const DRAWdown_PERCENT = 0.10; // 10% drawdown threshold if starting balance known
+    // Streak/drawdown detection (keeps checking lightweight and safe)
+    const balanceNames = ['balance','accountBalance','currentBalance','funds','walletBalance'];
+    const stakeNames = ['stake','currentStake','betAmount','wager'];
+    const streakNames = ['winStreak','streak','consecutiveWins','winsInRow'];
+    const startingBalanceNames = ['startingBalance','initialBalance','startingAccountBalance'];
+    const DRAWdown_PERCENT = 0.10;
     const POLL_MS = 3000;
-    let seenGreedTrigger = false;
-    let seenDrawdownTrigger = false;
+    let seenGreedTrigger = false, seenDrawdownTrigger = false;
     let lastKnownStartingBalance = getNumberFromCandidates(startingBalanceNames);
 
-    // try to initialize starting balance if there's a function or variable that provides it
-    if(!lastKnownStartingBalance){
-      const fnCandidates = ["getStartingBalance","fetchStartingBalance"];
-      for(const fn of fnCandidates){
-        try{ if(typeof window[fn] === "function"){ const res = window[fn](); if(typeof res === "number") lastKnownStartingBalance = res; }}catch(e){}
-      }
-    }
+    if(!lastKnownStartingBalance){ const fnCandidates = ['getStartingBalance','fetchStartingBalance']; for(const fn of fnCandidates){ try{ if(typeof window[fn] === 'function'){ const res = window[fn](); if(typeof res === 'number') lastKnownStartingBalance = res; } }catch(e){} } }
 
-    function poll(){
+    function checkStreaks(){
       try{
         const balance = getNumberFromCandidates(balanceNames);
         const stake = getNumberFromCandidates(stakeNames);
         const streak = getNumberFromCandidates(streakNames);
-        if(balance !== undefined && stake !== undefined && streak !== undefined && !seenGreedTrigger){
-          // If user is on three clean wins and stake > 50% balance => show greed note
-          if(streak >= 3 && stake > 0.5 * balance){
-            seenGreedTrigger = true;
-            window.triggerGreedNotePopup({durationMs:12000});
-          }
+
+        if(!seenGreedTrigger && typeof streak === 'number' && !isNaN(streak) && streak >= 3 && typeof balance === 'number' && typeof stake === 'number'){
+          if(stake > 0.5 * balance){ seenGreedTrigger = true; if(typeof window.triggerGreedNotePopup === 'function') window.triggerGreedNotePopup({durationMs:12000}); else show(greed,12000); }
         }
 
-        // Drawdown detection: if starting balance known and current balance dropped by DRAWdown_PERCENT
-        let startBal = lastKnownStartingBalance;
-        if(!startBal){
-          startBal = getNumberFromCandidates(startingBalanceNames);
-        }
-        if(balance !== undefined && startBal !== undefined && !seenDrawdownTrigger){
+        let startBal = lastKnownStartingBalance || getNumberFromCandidates(startingBalanceNames);
+        if(!seenDrawdownTrigger && typeof startBal === 'number' && typeof balance === 'number'){
           const drop = (startBal - balance) / startBal;
-          if(drop >= DRAWdown_PERCENT){
-            seenDrawdownTrigger = true;
-            window.triggerDrawdownPopup({durationMs:20000});
-          }
+          if(drop >= DRAWdown_PERCENT){ seenDrawdownTrigger = true; if(typeof window.triggerDrawdownPopup === 'function') window.triggerDrawdownPopup({durationMs:20000}); else show(draw,20000); }
         }
-
-        // Also detect if a drawdownPercent variable exists directly
-        const dd = getNumberFromCandidates(["drawdownPercent","currentDrawdownPercent"]);
-        if(typeof dd === "number" && dd >= DRAWdown_PERCENT && !seenDrawdownTrigger){
-          seenDrawdownTrigger = true;
-          window.triggerDrawdownPopup({durationMs:20000});
-        }
-
-      }catch(e){ /* fail silently */ }
+      }catch(e){ /* silent */ }
     }
 
-    // Start polling but only if at least one of the candidate variables exists to avoid unnecessary work
-    const anyKnown = firstDefined(balanceNames.concat(stakeNames).concat(streakNames).concat(startingBalanceNames).concat(["drawdownPercent","currentDrawdownPercent"]));
-    if(typeof anyKnown !== "undefined"){
-      // poll a few times to catch transient conditions
-      poll();
-      const pollInterval = setInterval(poll, POLL_MS);
-      // stop polling after 5 minutes to be non-intrusive
+    // Start polling only if any candidate variable exists
+    const anyKnown = firstDefined(balanceNames.concat(stakeNames).concat(streakNames).concat(startingBalanceNames).concat(['drawdownPercent','currentDrawdownPercent']));
+    if(typeof anyKnown !== 'undefined'){
+      checkStreaks();
+      const pollInterval = setInterval(checkStreaks, POLL_MS);
       setTimeout(()=> clearInterval(pollInterval), 1000 * 60 * 5);
     }
 
-    // Expose a small helper to manually reset auto-triggers if you want
     window.__kut_reset_risk_triggers = function(){ seenGreedTrigger = false; seenDrawdownTrigger = false; };
 
-  }catch(err){ console.warn("kut-risk script error", err); }
+  }catch(err){ console.warn('kut-risk script error', err); }
 })();
 </script>
 <!-- END: KUTMILZAI RISK NOTICES -->
+
+<!-- AdvanX: Advanced Market Intelligence Engine (passive analyzer) -->
+<script src="advanx.js"></script>
+
+<!-- AdvanX feeder: maps existing appState and tickHistory into AdvanX.update() snapshots -->
+<!-- AdvanX feeder removed — snapshot mapping moved internal to advanx.js to keep data ingestion private -->
 
 <!-- Login System -->
 <script>
