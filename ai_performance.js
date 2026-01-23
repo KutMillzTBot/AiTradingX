@@ -1114,6 +1114,9 @@ console.log("[AI] KUT MILLZ AI Brain loaded with FULL LEARNING CAPABILITIES - Co
 
 // Compute Digit Prediction Summary Layer
 function computeDigitPredictionSummary() {
+  // If Accumulator (ACCU) mode is enabled or KutAiX module disabled, disable KutAiX analysis
+  if ((window.appState?.accu && window.appState.accu.enabled) || (window.appState?.kutAiX && window.appState.kutAiX.enabled === false)) return null;
+
   const digits = window.appState?.lastDigits || [];
   if (digits.length === 0) return null;
 
@@ -1271,6 +1274,22 @@ function computeDigitPredictionSummary() {
 // Update Digit Prediction Summary UI
 function updateDigitPredictionSummary() {
   // New Deriv-accurate digit probability logic (rolling window)
+  // If Accumulator (ACCU) mode is enabled OR KutAiX module disabled, clear KutAiX UI and skip updates
+  if ((window.appState?.accu && window.appState.accu.enabled) || (window.appState?.kutAiX && window.appState.kutAiX.enabled === false)) {
+    try{
+      // Clear per-digit prediction text
+      for (let d=0; d<=9; d++){ const el = document.getElementById(`xdigit-${d}-pred`); if (el) el.textContent = '';} 
+      // Hide last-digit icons
+      for (let d=0; d<=9; d++){ const btn = document.getElementById(`xdigit-${d}`); if (!btn) continue; const ico = btn.querySelector('.xdigit-last-icon'); if (ico) ico.classList.remove('show'); }
+      const topEl = document.getElementById('kutAiX-top-digits'); if (topEl) topEl.textContent = '';
+      const bottomEl = document.getElementById('kutAiX-bottom-digits'); if (bottomEl) bottomEl.textContent = '';
+      const statusEl = document.getElementById('kutAiX-summary-status'); if (statusEl) statusEl.textContent = (window.appState?.accu && window.appState.accu.enabled) ? 'ACCU ACTIVE' : 'OFF';
+      const predEl = document.getElementById('kutAiX-prediction'); if (predEl) predEl.textContent = '';
+      const confEl = document.getElementById('kutAiX-confidence'); if (confEl) confEl.textContent = '';
+    }catch(e){}
+    return;
+  }
+
   const lookback = window.appState?.kutMilzAi?.lookback ?? 100;
   const rawDigits = (window.appState?.lastDigits || []).slice(-lookback);
   if (!rawDigits || rawDigits.length === 0) return;
@@ -1292,24 +1311,15 @@ function updateDigitPredictionSummary() {
   const lastDigit = rawDigits[rawDigits.length - 1];
   const nudgeAmount = priceInfluence * 0.2; // e.g. 5% -> 1% nudge
 
-  const maxDisplay = window.appState?.kutMilzAi?.maxDigitProbability ?? 20; // percent cap
-  const minDisplay = 5; // floor percent
+  // Raw base percentages for digits 0-9 (raw counts / total)
+  const rawPercentages = basePercentages.map(p => p);
 
-  const displayedPercentages = basePercentages.map((p, digit) => {
-    let v = p;
-    if (digit === lastDigit) v = v + nudgeAmount;
-    // enforce hard cap and floor
-    if (v > maxDisplay) v = maxDisplay;
-    if (v < minDisplay) v = minDisplay;
-    return v;
-  });
-
-  // Update UI per-digit without changing any internal probabilities or accumulator state
+  // Update UI per-digit with raw percentages (user requested raw values)
   for (let d = 0; d <= 9; d++) {
     const el = document.getElementById(`xdigit-${d}-pred`);
     if (el) {
-      el.textContent = displayedPercentages[d].toFixed(1) + '%';
-      el.dataset.displayPercent = String(displayedPercentages[d]);
+      el.textContent = rawPercentages[d].toFixed(1) + '%';
+      el.dataset.rawPercent = String(rawPercentages[d]);
     }
     // ensure the digit button has a small container for the last-digit icon
     const btn = document.getElementById(`xdigit-${d}`);
@@ -1355,9 +1365,12 @@ function updateDigitPredictionSummary() {
     const lastDigitEl = document.getElementById('kutAiX-last-digit');
 
     // Build digit stats array for UI summary
-    const stats = displayedPercentages.map((p,d)=>({ digit:d, pct:p, count: digitCounts[d] }));
+    const stats = rawPercentages.map((p,d)=>({ digit:d, pct:p, count: digitCounts[d] }));
     const sortedTop = [...stats].sort((a,b)=>b.pct - a.pct);
     const sortedBottom = [...stats].sort((a,b)=>a.pct - b.pct);
+
+    // However, ensure stats reflect raw percentages (0-9) for clarity
+    const rawStats = rawPercentages.map((p,d)=>({ digit:d, pct:p, count: digitCounts[d] }));
 
     if (topEl){
       topEl.innerHTML = '';
